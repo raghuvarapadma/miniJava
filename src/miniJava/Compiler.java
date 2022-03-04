@@ -1,7 +1,7 @@
 package miniJava;
 
+import miniJava.AbstractSyntaxTrees.AST;
 import miniJava.AbstractSyntaxTrees.ASTDisplay;
-import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.SyntacticAnalyzer.Parser;
 import miniJava.SyntacticAnalyzer.Scanner;
 import miniJava.SyntacticAnalyzer.SyntaxException;
@@ -16,12 +16,12 @@ public class Compiler {
 			sourceFile = new SourceFile(filename);
 		} catch (FileNotFoundException e) {
 			System.out.println("There was an error reading in the argument. Make sure to only pass in valid files!");
-			System.exit(1);
+			System.exit(3);
 		}
 		Scanner scanner = new Scanner(sourceFile);
 		Parser parser = new Parser(scanner);
 		try {
-			Package ast = parser.parse();
+			AST ast = parser.parse();
 			ASTDisplay astDisplay = new ASTDisplay();
 			astDisplay.showTree(ast);
 			System.out.println("Parsed successfully!");
