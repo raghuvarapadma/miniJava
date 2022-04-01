@@ -5,6 +5,7 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
+import miniJava.ContextualAnalysis.ContextualAnalysisException;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public abstract class AST {

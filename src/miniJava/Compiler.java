@@ -2,8 +2,11 @@ package miniJava;
 
 import miniJava.AbstractSyntaxTrees.AST;
 import miniJava.AbstractSyntaxTrees.ASTDisplay;
+import miniJava.AbstractSyntaxTrees.Package;
+import miniJava.ContextualAnalysis.Identification;
 import miniJava.SyntacticAnalyzer.Parser;
 import miniJava.SyntacticAnalyzer.Scanner;
+import miniJava.SyntacticAnalyzer.SourceFile;
 import miniJava.SyntacticAnalyzer.SyntaxException;
 
 import java.io.FileNotFoundException;
@@ -21,9 +24,9 @@ public class Compiler {
 		Scanner scanner = new Scanner(sourceFile);
 		Parser parser = new Parser(scanner);
 		try {
-			AST ast = parser.parse();
-			ASTDisplay astDisplay = new ASTDisplay();
-			astDisplay.showTree(ast);
+			Package ast = parser.parse();
+			new ASTDisplay().showTree(ast);
+			Identification identification = new Identification(ast);
 			System.out.println("Parsed successfully!");
 			System.exit(0);
 		} catch (SyntaxException e) {

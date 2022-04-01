@@ -5,6 +5,7 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
+import miniJava.ContextualAnalysis.ContextualAnalysisException;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public class ClassType extends TypeDenoter
@@ -14,7 +15,7 @@ public class ClassType extends TypeDenoter
         className = cn;
     }
             
-    public <A,R> R visit(Visitor<A,R> v, A o) {
+    public <A,R> R visit(Visitor<A,R> v, A o)  {
         return v.visitClassType(this, o);
     }
 

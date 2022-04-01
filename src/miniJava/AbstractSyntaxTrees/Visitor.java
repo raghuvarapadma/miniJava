@@ -5,6 +5,8 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
+import miniJava.ContextualAnalysis.ContextualAnalysisException;
+
 /**
  * An implementation of the Visitor interface provides a method visitX
  * for each non-abstract AST class X.  
@@ -56,4 +58,5 @@ public interface Visitor<ArgType,ResultType> {
     public ResultType visitOperator(Operator op, ArgType arg);
     public ResultType visitIntLiteral(IntLiteral num, ArgType arg);
     public ResultType visitBooleanLiteral(BooleanLiteral bool, ArgType arg);
+	  public ResultType visitNullLiteral(NullLiteral nullLiteral, ArgType o);
 }

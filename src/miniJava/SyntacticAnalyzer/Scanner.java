@@ -1,7 +1,5 @@
 package miniJava.SyntacticAnalyzer;
 
-import miniJava.SourceFile;
-
 public class Scanner {
 	private final SourceFile sourceFile;
 	private char currentChar;
@@ -62,6 +60,8 @@ public class Scanner {
 						return TokenKind.INT;
 					case "boolean":
 						return TokenKind.BOOLEAN;
+					case "null":
+						return TokenKind.NULL;
 					default:
 						return TokenKind.IDENTIFIER;
 				}
@@ -187,13 +187,14 @@ public class Scanner {
 		while (currentChar == ' ' || currentChar == '\t' || currentChar == '\n' || currentChar == '\r') {
 			scanSeparator();
 		}
+		SourcePosition sourcePosition = new SourcePosition();
 		currentSpelling = new StringBuffer();
+		sourcePosition.start = sourceFile.getLineCounter();
 		TokenKind currentToken = scanToken();
 		if (currentToken == TokenKind.SINGLE_COMMENT) {
 			while (currentChar != '\n' && currentChar != '\r' && currentChar != SourceFile.EOT) {
 				takeIt();
 			}
-//			System.out.println(currentSpelling);
 			return scan();
 		} else if (currentToken == TokenKind.MULTI_LINE_COMMENT) {
 			while (true) {
@@ -213,11 +214,10 @@ public class Scanner {
 					takeIt();
 				}
 			}
-//			System.out.println(currentSpelling);
+			sourcePosition.finish = sourceFile.getLineCounter();
 			return scan();
 		} else {
-//			System.out.println(currentSpelling);
-			return new Token(currentToken, currentSpelling.toString(), null);
+			return new Token(currentToken, currentSpelling.toString(), sourcePosition);
 		}
 	}
 }

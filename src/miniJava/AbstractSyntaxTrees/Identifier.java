@@ -9,6 +9,8 @@ import miniJava.SyntacticAnalyzer.Token;
 
 public class Identifier extends Terminal {
 
+  public Declaration declaration;
+
   public Identifier (Token t) {
     super (t);
   }
