@@ -69,6 +69,5 @@ public class IdentificationTable {
 		}
 
 		return returnDeclaration;
-		//throw new ContextualAnalysisException("Could not find Identifier in ID Table!");
 	}
 }

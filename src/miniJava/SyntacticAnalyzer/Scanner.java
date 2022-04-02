@@ -214,9 +214,9 @@ public class Scanner {
 					takeIt();
 				}
 			}
-			sourcePosition.finish = sourceFile.getLineCounter();
 			return scan();
 		} else {
+			sourcePosition.finish = sourceFile.getLineCounter();
 			return new Token(currentToken, currentSpelling.toString(), sourcePosition);
 		}
 	}

@@ -33,17 +33,17 @@ public class Identification implements Visitor<Object, Object> {
 		FieldDeclList fieldDeclListSystem = new FieldDeclList();
 		fieldDeclListSystem.add(new FieldDecl(false, true, new ClassType(new Identifier(new Token
 				(TokenKind.IDENTIFIER, "_PrintStream", null)), null), "out", null));
-		ClassDecl system = new ClassDecl("System", fieldDeclListSystem, null, null);
+		ClassDecl system = new ClassDecl("System", fieldDeclListSystem, new MethodDeclList(), null);
 		MethodDeclList methodDeclListPrintSystem = new MethodDeclList();
 		ParameterDeclList parameterDeclList = new ParameterDeclList();
-		parameterDeclList.add(new ParameterDecl(new BaseType(TypeKind.VOID, null), "n", null));
+		parameterDeclList.add(new ParameterDecl(new BaseType(TypeKind.INT, null), "n", null));
 		methodDeclListPrintSystem.add(new MethodDecl(new FieldDecl(false, false, new BaseType
 				(TypeKind.VOID, null), "println", null), parameterDeclList, new StatementList(), null));
-		ClassDecl printStream = new ClassDecl("_PrintStream", null, methodDeclListPrintSystem, null);
-		ClassDecl string = new ClassDecl("String", null, null, null);
-		table.enter(system.name, system);
-		table.enter(printStream.name, printStream);
-		table.enter(string.name, string);
+		ClassDecl printStream = new ClassDecl("_PrintStream", new FieldDeclList(), methodDeclListPrintSystem, null);
+		ClassDecl string = new ClassDecl("String", new FieldDeclList(), new MethodDeclList(), null);
+		prog.classDeclList.add(system);
+		prog.classDeclList.add(printStream);
+		prog.classDeclList.add(string);
 		for (ClassDecl cd: prog.classDeclList) {
 			table.enter(cd.name, cd);
 			classesDecl.put(cd.name, cd);
@@ -126,8 +126,7 @@ public class Identification implements Visitor<Object, Object> {
 			return null;
 		} else {
 			throwError(type.posn.start, identificationError, "Need to declare object with valid ClassType");
-			//throw new ContextualAnalysisException();
-			return null;
+			throw new ContextualAnalysisException();
 		}
 	}
 
@@ -174,6 +173,7 @@ public class Identification implements Visitor<Object, Object> {
 		stmt.methodRef.visit(this, null);
 		if (!(stmt.methodRef.declaration instanceof MethodDecl)) {
 			throwError(stmt.posn.start, identificationError, "Need to call method with valid identifier!");
+			throw new ContextualAnalysisException();
 		}
 		for (Expression expression: stmt.argList) {
 			expression.visit(this, null);
@@ -183,8 +183,7 @@ public class Identification implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitReturnStmt(ReturnStmt stmt, Object arg) {
-		stmt.returnExpr.visit(this, null);
-		return null;
+		return stmt.returnExpr.visit(this, null);
 	}
 
 	@Override
@@ -194,7 +193,9 @@ public class Identification implements Visitor<Object, Object> {
 		stmt.thenStmt.visit(this, null);
 		table.closeScope();
 		table.openScope();
-		stmt.elseStmt.visit(this, null);
+		if (stmt.elseStmt != null) {
+			stmt.elseStmt.visit(this, null);
+		}
 		table.closeScope();
 		return null;
 	}
@@ -241,6 +242,7 @@ public class Identification implements Visitor<Object, Object> {
 		expr.functionRef.visit(this, null);
 		if (!(expr.functionRef.declaration instanceof MethodDecl)) {
 			throwError(expr.posn.start, identificationError, "Need to call method with valid identifier!");
+			throw new ContextualAnalysisException();
 		}
 		for (Expression expression: expr.argList) {
 			expression.visit(this, null);
@@ -273,9 +275,6 @@ public class Identification implements Visitor<Object, Object> {
 		return null;
 	}
 
-	// do I visit visitIdentification at all?
-	// can declarations for both things be the same?
-
 	@Override
 	public Object visitIdRef(IdRef ref, Object arg) {
 		if (arg != null) {
@@ -283,16 +282,26 @@ public class Identification implements Visitor<Object, Object> {
 				ref.id.declaration = classesDecl.get(ref.id.spelling);
 				ref.declaration = classesDecl.get(ref.id.spelling);
 			} else {
-				ref.id.declaration = table.retrieve(ref.id.spelling);
-				ref.declaration = table.retrieve(ref.id.spelling);
+				Declaration declaration = table.retrieve(ref.id.spelling);
+				if (declaration == null) {
+					throwError(ref.posn.start, identificationError, "Cannot reference undeclared identifier!");
+					throw new ContextualAnalysisException();
+				}
+				ref.id.declaration = declaration;
+				ref.declaration = declaration;
 			}
 		} else {
 			Declaration declaration = table.retrieve(ref.id.spelling);
+			if (declaration == null) {
+				throwError(ref.posn.start, identificationError, "Cannot reference undeclared identifier!");
+				throw new ContextualAnalysisException();
+			}
 			if (declaration instanceof FieldDecl || declaration instanceof MethodDecl) {
 				if (inStaticMethod) {
 					if (!((MemberDecl) declaration).isStatic) {
 						throwError(ref.posn.start, identificationError, "Cannot call an class attribute inside of static " +
 								"context");
+						throw new ContextualAnalysisException();
 					} else {
 						ref.declaration = declaration;
 						ref.id.declaration = declaration;
@@ -303,6 +312,7 @@ public class Identification implements Visitor<Object, Object> {
 				}
 			} else if (declaration instanceof ClassDecl) {
 				throwError(ref.posn.start, identificationError, "Cannot reference Class on it's own");
+				throw new ContextualAnalysisException();
 			} else {
 				ref.declaration = declaration;
 				ref.id.declaration = declaration;
@@ -311,7 +321,6 @@ public class Identification implements Visitor<Object, Object> {
 		return null;
 	}
 
-	// correct logic?
 	@Override
 	public Object visitQRef(QualRef ref, Object arg) {
 		ref.ref.visit(this, true);
@@ -320,8 +329,13 @@ public class Identification implements Visitor<Object, Object> {
 			if (ref.ref.declaration instanceof ClassDecl) {
 				fieldDeclList = ((ClassDecl)ref.ref.declaration).fieldDeclList;
 			} else {
-				fieldDeclList = ((ClassDecl)classesDecl.get(((ClassType)(ref.ref.declaration).type).className.
-						spelling)).fieldDeclList;
+				if (ref.ref.declaration.type.typeKind.equals(TypeKind.CLASS)) {
+					fieldDeclList = ((ClassDecl)classesDecl.get(((ClassType)(ref.ref.declaration).type).className.
+							spelling)).fieldDeclList;
+				} else {
+					throwError(ref.posn.start, identificationError, "References can only be of TypeKind class!");
+					throw new ContextualAnalysisException();
+				}
 			}
 		} else {
 			fieldDeclList = ((ClassDecl)classesDecl.get(((ClassType)(ref.ref.declaration).type).className.
@@ -335,8 +349,13 @@ public class Identification implements Visitor<Object, Object> {
 			}
 		}
 		if (arg == null && !found) {
-			MethodDeclList methodDeclList = ((ClassDecl)classesDecl.get(((ClassType)(ref.ref.declaration).type).className.
-					spelling)).methodDeclList;;
+			MethodDeclList methodDeclList;
+			if (ref.ref.declaration instanceof ClassDecl) {
+				methodDeclList = ((ClassDecl)ref.ref.declaration).methodDeclList;
+			} else {
+				methodDeclList = ((ClassDecl)classesDecl.get(((ClassType)(ref.ref.declaration).type).className.
+						spelling)).methodDeclList;
+			}
 			for (MethodDecl methodDecl: methodDeclList) {
 				if (methodDecl.name.equals(ref.id.spelling)) {
 					ref.declaration = methodDecl;
@@ -345,7 +364,7 @@ public class Identification implements Visitor<Object, Object> {
 		}
 		if (ref.declaration == null) {
 			throwError(ref.posn.start, identificationError, "Could not grab the correct declaration");
-			return null;
+			throw new ContextualAnalysisException();
 		}
 		if (arg == null) {
 			baseLevel = true;
@@ -355,7 +374,6 @@ public class Identification implements Visitor<Object, Object> {
 		return null;
 	}
 
-	// correct logic?
 	@Override
 	public Object visitIdentifier(Identifier id, Object arg) {
 		ClassDecl classDecl;
@@ -434,7 +452,9 @@ public class Identification implements Visitor<Object, Object> {
 			}
 		}
 		if (!found) {
-			throwError(((QualRef)arg).posn.start, identificationError, "yo mama ugly");
+			throwError(((QualRef)arg).posn.start, identificationError, "Field or Method could not be found or " +
+					"there is an issue with access modifiers!");
+			throw new ContextualAnalysisException();
 		}
 		return null;
 	}

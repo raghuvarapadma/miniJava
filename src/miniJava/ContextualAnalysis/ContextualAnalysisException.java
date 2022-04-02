@@ -1,6 +1,6 @@
 package miniJava.ContextualAnalysis;
 
-public class ContextualAnalysisException extends Exception {
+public class ContextualAnalysisException extends RuntimeException {
 	public ContextualAnalysisException() {
 		super();
 	}

@@ -3,7 +3,9 @@ package miniJava;
 import miniJava.AbstractSyntaxTrees.AST;
 import miniJava.AbstractSyntaxTrees.ASTDisplay;
 import miniJava.AbstractSyntaxTrees.Package;
+import miniJava.ContextualAnalysis.ContextualAnalysisException;
 import miniJava.ContextualAnalysis.Identification;
+import miniJava.ContextualAnalysis.TypeChecking;
 import miniJava.SyntacticAnalyzer.Parser;
 import miniJava.SyntacticAnalyzer.Scanner;
 import miniJava.SyntacticAnalyzer.SourceFile;
@@ -26,9 +28,14 @@ public class Compiler {
 		try {
 			Package ast = parser.parse();
 			new ASTDisplay().showTree(ast);
-			Identification identification = new Identification(ast);
-			System.out.println("Parsed successfully!");
-			System.exit(0);
+			try {
+				Identification identification = new Identification(ast);
+				TypeChecking typechecking = new TypeChecking(ast);
+				System.out.println("Parsed successfully!");
+				System.exit(0);
+			} catch (ContextualAnalysisException e) {
+				System.exit(4);;
+			}
 		} catch (SyntaxException e) {
 			System.out.println(e.getMessage());
 			System.exit(4);

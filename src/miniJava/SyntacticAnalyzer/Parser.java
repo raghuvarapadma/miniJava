@@ -4,6 +4,7 @@ package miniJava.SyntacticAnalyzer;
 import miniJava.AbstractSyntaxTrees.*;
 import miniJava.AbstractSyntaxTrees.Package;
 
+
 public class Parser {
 	private Token currentToken;
 	private final Scanner scanner;
@@ -29,6 +30,7 @@ public class Parser {
 		SourcePosition classSourcePosition = new SourcePosition();
 		start(classSourcePosition);
 		accept(TokenKind.CLASS);
+		Token classNameToken = currentToken;
 		String className = currentToken.getSpelling();
 		accept(TokenKind.IDENTIFIER);
 		accept(TokenKind.L_CURLY_BRACKET);
@@ -36,6 +38,7 @@ public class Parser {
 		accept(TokenKind.R_CURLY_BRACKET);
 		finish(classSourcePosition);
 		classDecl.posn = classSourcePosition;
+		classDecl.type = new ClassType(new Identifier(classNameToken), classNameToken.getSourcePosition());
 		return classDecl;
 	}
 
@@ -44,13 +47,18 @@ public class Parser {
 		MethodDeclList methodDeclList = new MethodDeclList();
 		while (currentToken.getTokenKind() != TokenKind.R_CURLY_BRACKET) {
 			SourcePosition fieldOrMethodSourcePosition = new SourcePosition();
+			SourcePosition methodFieldModifiers = new SourcePosition();
 			start(fieldOrMethodSourcePosition);
+			start(methodFieldModifiers);
 			boolean isPrivate = parseVisibility();
 			boolean isStatic = parseAccess();
 			if (currentToken.getTokenKind() == TokenKind.VOID) {
+				SourcePosition voidSourcePosition = new SourcePosition();
+				start(voidSourcePosition);
 				accept(TokenKind.VOID);
-				methodDeclList.add(parseMethodDeclaration(TokenKind.VOID, isPrivate, isStatic,
-						new BaseType(TypeKind.VOID, null), null));
+				finish(voidSourcePosition);
+				methodDeclList.add(parseMethodDeclaration(TokenKind.VOID, isPrivate, isStatic, new BaseType(TypeKind.VOID,
+						voidSourcePosition), null, methodFieldModifiers));
 			} else {
 				TypeDenoter typeDenoter = parseType();
 				String name = currentToken.getSpelling();
@@ -60,7 +68,8 @@ public class Parser {
 					finish(fieldOrMethodSourcePosition);
 					fieldDeclList.add(new FieldDecl(isPrivate, isStatic, typeDenoter, name, fieldOrMethodSourcePosition));
 				} else {
-					MethodDecl methodDecl = parseMethodDeclaration(TokenKind.SEMICOLON, isPrivate, isStatic, typeDenoter, name);
+					MethodDecl methodDecl = parseMethodDeclaration(TokenKind.SEMICOLON, isPrivate, isStatic, typeDenoter, name,
+							methodFieldModifiers);
 					finish(fieldOrMethodSourcePosition);
 					methodDecl.posn = fieldOrMethodSourcePosition;
 					methodDeclList.add(methodDecl);
@@ -71,11 +80,13 @@ public class Parser {
 	}
 
 	private MethodDecl parseMethodDeclaration (TokenKind tokenKindBranch, boolean isPrivate, boolean isStatic,
-																						 TypeDenoter typeDenoter, String name) throws SyntaxException {
+																						 TypeDenoter typeDenoter, String name, SourcePosition methodFieldModifiers)
+			throws SyntaxException {
 		if (tokenKindBranch == TokenKind.VOID) {
 			name = currentToken.getSpelling();
 			accept(TokenKind.IDENTIFIER);
 		}
+		finish(methodFieldModifiers);
 		accept(TokenKind.L_PAREN);
 		ParameterDeclList parameterDeclList = new ParameterDeclList();
 		if (!(currentToken.getTokenKind() == TokenKind.R_PAREN)) {
@@ -88,8 +99,8 @@ public class Parser {
 			statementList.add(parseStatement());
 		}
 		accept(TokenKind.R_CURLY_BRACKET);
-		return new MethodDecl(new FieldDecl(isPrivate, isStatic, typeDenoter, name, null), parameterDeclList,
-				statementList,null);
+		return new MethodDecl(new FieldDecl(isPrivate, isStatic, typeDenoter, name, methodFieldModifiers),
+				parameterDeclList, statementList,null);
 	}
 
 	private ParameterDeclList parseParameterList () throws SyntaxException {
@@ -165,11 +176,11 @@ public class Parser {
 					accept(TokenKind.SEMICOLON);
 					finish(statementSourcePosition);
 					return new VarDeclStmt(new VarDecl(new ClassType(new Identifier(identifierInitial),
-							identifierInitialSourcePosition), identifierID.getSpelling(),identifierInitialSourcePosition),
+							identifierInitialSourcePosition), identifierID.getSpelling(), identifierInitialSourcePosition),
 							expressionVarDeclID, statementSourcePosition);
 				}
 				else {
-					Reference reference = new IdRef(new Identifier(identifierInitial), null);
+					Reference reference = new IdRef(new Identifier(identifierInitial), identifierInitialSourcePosition);
 					if (currentToken.getTokenKind() == TokenKind.PERIOD) {
 						reference = parseReference(identifierInitial);
 					}
@@ -259,6 +270,8 @@ public class Parser {
 				Expression expressionReturn = null;
 				if (currentToken.getTokenKind() != TokenKind.SEMICOLON) {
 					expressionReturn = parseExpression();
+				} else {
+					expressionReturn = new LiteralExpr(new NullLiteral(currentToken), currentToken.getSourcePosition());
 				}
 				accept(TokenKind.SEMICOLON);
 				finish(returnSourcePosition);
@@ -275,10 +288,10 @@ public class Parser {
 					acceptIt();
 					Statement statementElse = parseStatement();
 					finish(ifSourcePosition);
-					return new IfStmt(expressionIf, statementIf, statementElse, null);
+					return new IfStmt(expressionIf, statementIf, statementElse, ifSourcePosition);
 				} else {
 					finish(ifSourcePosition);
-					return new IfStmt(expressionIf, statementIf, null);
+					return new IfStmt(expressionIf, statementIf, ifSourcePosition);
 				}
 			case WHILE:
 				SourcePosition whileSourcePosition = new SourcePosition();
@@ -354,7 +367,7 @@ public class Parser {
 			acceptIt();
 			Expression e2 = parseAdditiveExpr();
 			finish(relationalExprSourcePosition);
-			e1 = new BinaryExpr(op, e1, e2, null);
+			e1 = new BinaryExpr(op, e1, e2, relationalExprSourcePosition);
 		}
 		return e1;
 	}
@@ -510,9 +523,9 @@ public class Parser {
 			case INT: case IDENTIFIER:
 				TypeDenoter typeDenoter = null;
 				if (currentToken.getTokenKind() == TokenKind.INT) {
-					typeDenoter = new BaseType(TypeKind.INT, null);
+					typeDenoter = new BaseType(TypeKind.INT, currentToken.getSourcePosition());
 				} else if (currentToken.getTokenKind() == TokenKind.IDENTIFIER) {
-					typeDenoter = new ClassType(new Identifier(currentToken), null);
+					typeDenoter = new ClassType(new Identifier(currentToken), currentToken.getSourcePosition());
 				} else {
 					throw new SyntaxException("Token needs to be of type INT or IDENTIFIER");
 				}
@@ -589,6 +602,7 @@ public class Parser {
 	private void accept(TokenKind expectedToken) throws SyntaxException {
 		if (currentToken.getTokenKind() == expectedToken) {
 			if (currentToken.getTokenKind() != TokenKind.EOT) {
+				previousTokenPosition = currentToken.getSourcePosition();
 				currentToken = scanner.scan();
 			}
 		} else {
