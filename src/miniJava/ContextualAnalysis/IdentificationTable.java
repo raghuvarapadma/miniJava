@@ -25,46 +25,49 @@ public class IdentificationTable {
 	}
 
 	public void enter (String string, Declaration declaration){
-		HashMap<String, Declaration> hashMap = this.stack.pop();
+		HashMap<String, Declaration> levelFourHashMap = this.stack.pop();
 		if (level == 4) {
-			HashMap<String, Declaration> hashMapParameters = this.stack.pop();
-			if (hashMapParameters.containsKey(string)) {
-				System.out.println("idk");
+			HashMap<String, Declaration> levelThreeHashMap = this.stack.pop();
+			if (levelFourHashMap.containsKey(string) || levelThreeHashMap.containsKey(string)) {
+				System.out.println("*** line " + declaration.posn.start + ": Identification Error + Each scope level can " +
+						"only have at most one declaration for an identifier!");
+				throw new ContextualAnalysisException();
 			} else {
-				this.stack.push(hashMapParameters);
-				hashMap.put(string, declaration);
-				this.stack.push(hashMap);
+				this.stack.push(levelThreeHashMap);
+				levelFourHashMap.put(string, declaration);
+				this.stack.push(levelFourHashMap);
 			}
 		}
 		else {
-			if (hashMap.containsKey(string)) {
-				System.out.println("idk");
-				// throw new ContextualAnalysisException("Cannot have an identifier with the same name in the same scope!");
+			if (levelFourHashMap.containsKey(string)) {
+				System.out.println("*** line " + declaration.posn.start + ": Identification Error + Declarations at level" +
+						" 4 or higher may not hide declarations at levels 3 or higher!");
+				throw new ContextualAnalysisException();
 			} else {
-				hashMap.put(string, declaration);
-				this.stack.push(hashMap);
+				levelFourHashMap.put(string, declaration);
+				this.stack.push(levelFourHashMap);
 			}
 		}
 	}
 
 	public Declaration retrieve(String string) {
-		ArrayList<HashMap<String, Declaration>> arrayList = new ArrayList<>();
-		Iterator<HashMap<String, Declaration>> iterator = stack.iterator();
+		ArrayList<HashMap<String, Declaration>> hashMapArrayList = new ArrayList<>();
+		Iterator<HashMap<String, Declaration>> hashMapIterator = stack.iterator();
 		HashMap<String, Declaration> hashMap;
 		Declaration returnDeclaration = null;
 
-		while (iterator.hasNext()) {
+		while (hashMapIterator.hasNext()) {
 			hashMap = stack.pop();
-			arrayList.add(hashMap);
+			hashMapArrayList.add(hashMap);
 			if (hashMap.containsKey(string)) {
 				returnDeclaration = hashMap.get(string);
 				break;
 			}
 		}
 
-		Collections.reverse(arrayList);
+		Collections.reverse(hashMapArrayList);
 
-		for (HashMap<String, Declaration> hashmapReplace: arrayList) {
+		for (HashMap<String, Declaration> hashmapReplace: hashMapArrayList) {
 			stack.push(hashmapReplace);
 		}
 

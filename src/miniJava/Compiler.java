@@ -1,6 +1,5 @@
 package miniJava;
 
-import miniJava.AbstractSyntaxTrees.AST;
 import miniJava.AbstractSyntaxTrees.ASTDisplay;
 import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.ContextualAnalysis.ContextualAnalysisException;

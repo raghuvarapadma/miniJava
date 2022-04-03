@@ -39,7 +39,8 @@ public class Identification implements Visitor<Object, Object> {
 		parameterDeclList.add(new ParameterDecl(new BaseType(TypeKind.INT, null), "n", null));
 		methodDeclListPrintSystem.add(new MethodDecl(new FieldDecl(false, false, new BaseType
 				(TypeKind.VOID, null), "println", null), parameterDeclList, new StatementList(), null));
-		ClassDecl printStream = new ClassDecl("_PrintStream", new FieldDeclList(), methodDeclListPrintSystem, null);
+		ClassDecl printStream = new ClassDecl("_PrintStream", new FieldDeclList(), methodDeclListPrintSystem,
+				null);
 		ClassDecl string = new ClassDecl("String", new FieldDeclList(), new MethodDeclList(), null);
 		prog.classDeclList.add(system);
 		prog.classDeclList.add(printStream);
@@ -149,7 +150,7 @@ public class Identification implements Visitor<Object, Object> {
 	@Override
 	public Object visitVardeclStmt(VarDeclStmt stmt, Object arg) {
 		stmt.varDecl.visit(this, null);
-		stmt.initExp.visit(this, null);
+		stmt.initExp.visit(this, stmt.varDecl.name);
 		return null;
 	}
 
@@ -190,6 +191,24 @@ public class Identification implements Visitor<Object, Object> {
 	public Object visitIfStmt(IfStmt stmt, Object arg) {
 		stmt.cond.visit(this, null);
 		table.openScope();
+		if (stmt.thenStmt instanceof VarDeclStmt) {
+			throwError(stmt.posn.start, identificationError, "A variable declaration cannot be the solitary statement" +
+					" in a branch of a conditional statement");
+			throw new ContextualAnalysisException();
+		} else if (stmt.thenStmt instanceof BlockStmt) {
+			boolean valid = false;
+			for (Statement statement: ((BlockStmt) stmt.thenStmt).sl) {
+				if (!(statement instanceof VarDeclStmt)) {
+					valid = true;
+					break;
+				}
+			}
+			if (!valid) {
+				throwError(stmt.posn.start, identificationError, "A variable declaration cannot be the solitary statement" +
+						" in a branch of a conditional statement");
+				throw new ContextualAnalysisException();
+			}
+		}
 		stmt.thenStmt.visit(this, null);
 		table.closeScope();
 		table.openScope();
@@ -211,61 +230,61 @@ public class Identification implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitUnaryExpr(UnaryExpr expr, Object arg) {
-		expr.expr.visit(this, null);
-		expr.operator.visit(this, null);
+		expr.expr.visit(this, arg);
+		expr.operator.visit(this, arg);
 		return null;
 	}
 
 	@Override
 	public Object visitBinaryExpr(BinaryExpr expr, Object arg) {
-		expr.left.visit(this, null);
-		expr.operator.visit(this, null);
-		expr.right.visit(this, null);
+		expr.left.visit(this, arg);
+		expr.operator.visit(this, arg);
+		expr.right.visit(this, arg);
 		return null;
 	}
 
 	@Override
 	public Object visitRefExpr(RefExpr expr, Object arg) {
-		expr.ref.visit(this, null);
+		expr.ref.visit(this, arg);
 		return null;
 	}
 
 	@Override
 	public Object visitIxExpr(IxExpr expr, Object arg) {
-		expr.ref.visit(this, null);
-		expr.ixExpr.visit(this, null);
+		expr.ref.visit(this, arg);
+		expr.ixExpr.visit(this, arg);
 		return null;
 	}
 
 	@Override
 	public Object visitCallExpr(CallExpr expr, Object arg) {
-		expr.functionRef.visit(this, null);
+		expr.functionRef.visit(this, arg);
 		if (!(expr.functionRef.declaration instanceof MethodDecl)) {
 			throwError(expr.posn.start, identificationError, "Need to call method with valid identifier!");
 			throw new ContextualAnalysisException();
 		}
 		for (Expression expression: expr.argList) {
-			expression.visit(this, null);
+			expression.visit(this, arg);
 		}
 		return null;
 	}
 
 	@Override
 	public Object visitLiteralExpr(LiteralExpr expr, Object arg) {
-		expr.lit.visit(this, null);
+		expr.lit.visit(this, arg);
 		return null;
 	}
 
 	@Override
 	public Object visitNewObjectExpr(NewObjectExpr expr, Object arg) {
-		expr.classtype.visit(this, null);
+		expr.classtype.visit(this, arg);
 		return null;
 	}
 
 	@Override
 	public Object visitNewArrayExpr(NewArrayExpr expr, Object arg) {
-		expr.eltType.visit(this, null);
-		expr.sizeExpr.visit(this, null);
+		expr.eltType.visit(this, arg);
+		expr.sizeExpr.visit(this, arg);
 		return null;
 	}
 
@@ -278,10 +297,12 @@ public class Identification implements Visitor<Object, Object> {
 	@Override
 	public Object visitIdRef(IdRef ref, Object arg) {
 		if (arg != null) {
-			if (classesDecl.containsKey(ref.id.spelling)) {
-				ref.id.declaration = classesDecl.get(ref.id.spelling);
-				ref.declaration = classesDecl.get(ref.id.spelling);
-			} else {
+			if (arg instanceof String) {
+				if (ref.id.spelling.equals(arg)) {
+					throwError(ref.posn.start, identificationError, "Cannot use the declared variable in the " +
+							"initializing expression");
+					throw new ContextualAnalysisException();
+				}
 				Declaration declaration = table.retrieve(ref.id.spelling);
 				if (declaration == null) {
 					throwError(ref.posn.start, identificationError, "Cannot reference undeclared identifier!");
@@ -289,6 +310,19 @@ public class Identification implements Visitor<Object, Object> {
 				}
 				ref.id.declaration = declaration;
 				ref.declaration = declaration;
+			} else {
+				if (classesDecl.containsKey(ref.id.spelling)) {
+					ref.id.declaration = classesDecl.get(ref.id.spelling);
+					ref.declaration = classesDecl.get(ref.id.spelling);
+				} else {
+					Declaration declaration = table.retrieve(ref.id.spelling);
+					if (declaration == null) {
+						throwError(ref.posn.start, identificationError, "Cannot reference undeclared identifier!");
+						throw new ContextualAnalysisException();
+					}
+					ref.id.declaration = declaration;
+					ref.declaration = declaration;
+				}
 			}
 		} else {
 			Declaration declaration = table.retrieve(ref.id.spelling);
@@ -299,8 +333,8 @@ public class Identification implements Visitor<Object, Object> {
 			if (declaration instanceof FieldDecl || declaration instanceof MethodDecl) {
 				if (inStaticMethod) {
 					if (!((MemberDecl) declaration).isStatic) {
-						throwError(ref.posn.start, identificationError, "Cannot call an class attribute inside of static " +
-								"context");
+						throwError(ref.posn.start, identificationError, "Cannot call an class attribute inside of " +
+								"static context");
 						throw new ContextualAnalysisException();
 					} else {
 						ref.declaration = declaration;
@@ -323,6 +357,9 @@ public class Identification implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitQRef(QualRef ref, Object arg) {
+		if (!(arg instanceof Boolean)) {
+			arg = null;
+		}
 		ref.ref.visit(this, true);
 		FieldDeclList fieldDeclList;
 		if (ref.ref instanceof ThisRef || ref.ref instanceof IdRef) {
@@ -387,7 +424,8 @@ public class Identification implements Visitor<Object, Object> {
 				classDecl = (ClassDecl)((QualRef)arg).ref.declaration;
 				isStatic = true;
 			} else {
-				classDecl = ((ClassDecl)classesDecl.get(((ClassType)(((QualRef)arg).ref.declaration).type).className.spelling));
+				classDecl = ((ClassDecl)classesDecl.get(((ClassType)(((QualRef)arg).ref.declaration).type).className.
+						spelling));
 			}
 		} else {
 			classDecl = ((ClassDecl)classesDecl.get(((ClassType)(((QualRef)arg).ref.declaration).type).className.spelling));

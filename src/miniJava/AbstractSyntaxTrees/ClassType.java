@@ -5,7 +5,6 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
-import miniJava.ContextualAnalysis.ContextualAnalysisException;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public class ClassType extends TypeDenoter
