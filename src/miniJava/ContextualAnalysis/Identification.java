@@ -291,40 +291,34 @@ public class Identification implements Visitor<Object, Object> {
 	@Override
 	public Object visitThisRef(ThisRef ref, Object arg) {
 		ref.declaration = currentClassDecl;
+		if (inStaticMethod) {
+			Identifier id = ((QualRef)arg).id;
+			boolean found = false;
+			FieldDeclList fieldDeclList = currentClassDecl.fieldDeclList;
+			for (FieldDecl fieldDecl: fieldDeclList) {
+				if (fieldDecl.isStatic) {
+					if (id.spelling.equals(fieldDecl.name)) {
+						found = true;
+					}
+				}
+			}
+			if (!found) {
+				throwError(((QualRef)arg).posn.start, identificationError, "Field or Method could not be found or " +
+						"there is an issue with access modifiers!");
+				throw new ContextualAnalysisException();
+			}
+		}
 		return null;
 	}
 
 	@Override
 	public Object visitIdRef(IdRef ref, Object arg) {
-		if (arg != null) {
-			if (arg instanceof String) {
-				if (ref.id.spelling.equals(arg)) {
-					throwError(ref.posn.start, identificationError, "Cannot use the declared variable in the " +
-							"initializing expression");
-					throw new ContextualAnalysisException();
-				}
-				Declaration declaration = table.retrieve(ref.id.spelling);
-				if (declaration == null) {
-					throwError(ref.posn.start, identificationError, "Cannot reference undeclared identifier!");
-					throw new ContextualAnalysisException();
-				}
-				ref.id.declaration = declaration;
-				ref.declaration = declaration;
-			} else {
-				if (classesDecl.containsKey(ref.id.spelling)) {
-					ref.id.declaration = classesDecl.get(ref.id.spelling);
-					ref.declaration = classesDecl.get(ref.id.spelling);
-				} else {
-					Declaration declaration = table.retrieve(ref.id.spelling);
-					if (declaration == null) {
-						throwError(ref.posn.start, identificationError, "Cannot reference undeclared identifier!");
-						throw new ContextualAnalysisException();
-					}
-					ref.id.declaration = declaration;
-					ref.declaration = declaration;
-				}
+		if (arg instanceof String) {
+			if (ref.id.spelling.equals(arg)) {
+				throwError(ref.posn.start, identificationError, "Cannot use the declared variable in the " +
+						"initializing expression");
+				throw new ContextualAnalysisException();
 			}
-		} else {
 			Declaration declaration = table.retrieve(ref.id.spelling);
 			if (declaration == null) {
 				throwError(ref.posn.start, identificationError, "Cannot reference undeclared identifier!");
@@ -351,6 +345,35 @@ public class Identification implements Visitor<Object, Object> {
 				ref.declaration = declaration;
 				ref.id.declaration = declaration;
 			}
+		} else {
+			if (classesDecl.containsKey(ref.id.spelling)) {
+				ref.id.declaration = classesDecl.get(ref.id.spelling);
+				ref.declaration = classesDecl.get(ref.id.spelling);
+			} else {
+				Declaration declaration = table.retrieve(ref.id.spelling);
+				if (declaration == null) {
+					throwError(ref.posn.start, identificationError, "Cannot reference undeclared identifier!");
+					throw new ContextualAnalysisException();
+				}
+				if (declaration instanceof FieldDecl || declaration instanceof MethodDecl) {
+					if (inStaticMethod) {
+						if (!((MemberDecl) declaration).isStatic) {
+							throwError(ref.posn.start, identificationError, "Cannot call an class attribute inside of " +
+									"static context");
+							throw new ContextualAnalysisException();
+						} else {
+							ref.declaration = declaration;
+							ref.id.declaration = declaration;
+						}
+					} else {
+						ref.declaration = declaration;
+						ref.id.declaration = declaration;
+					}
+				} else {
+					ref.id.declaration = declaration;
+					ref.declaration = declaration;
+				}
+			}
 		}
 		return null;
 	}
@@ -360,7 +383,7 @@ public class Identification implements Visitor<Object, Object> {
 		if (!(arg instanceof Boolean)) {
 			arg = null;
 		}
-		ref.ref.visit(this, true);
+		ref.ref.visit(this, ref);
 		FieldDeclList fieldDeclList;
 		if (ref.ref instanceof ThisRef || ref.ref instanceof IdRef) {
 			if (ref.ref.declaration instanceof ClassDecl) {
@@ -432,9 +455,10 @@ public class Identification implements Visitor<Object, Object> {
 		}
 		FieldDeclList fieldDeclList = classDecl.fieldDeclList;
 		boolean found = false;
-		if (!isStatic && !isThis) {
+
+		if (isStatic) {
 			for (FieldDecl fieldDecl: fieldDeclList) {
-				if (!fieldDecl.isPrivate && !fieldDecl.isStatic) {
+				if (fieldDecl.isStatic && !fieldDecl.isPrivate) {
 					if (id.spelling.equals(fieldDecl.name)) {
 						found = true;
 						break;
@@ -443,28 +467,8 @@ public class Identification implements Visitor<Object, Object> {
 			}
 			if (baseLevel && !found) {
 				MethodDeclList methodDeclList = classDecl.methodDeclList;
-				for (MethodDecl methodDecl: methodDeclList) {
-					if (!methodDecl.isPrivate && !methodDecl.isStatic) {
-						if (id.spelling.equals(methodDecl.name)) {
-							found = true;
-							break;
-						}
-					}
-				}
-			}
-		} else if (!isThis) {
-			for (FieldDecl fieldDecl: fieldDeclList) {
-				if (!fieldDecl.isPrivate && fieldDecl.isStatic) {
-					if (id.spelling.equals(fieldDecl.name)) {
-						found = true;
-						break;
-					}
-				}
-			}
-			if (baseLevel && !found) {
-				MethodDeclList methodDeclList = classDecl.methodDeclList;
-				for (MethodDecl methodDecl: methodDeclList) {
-					if (!methodDecl.isPrivate && methodDecl.isStatic) {
+				for (MethodDecl methodDecl : methodDeclList) {
+					if (methodDecl.isStatic && !methodDecl.isPrivate) {
 						if (id.spelling.equals(methodDecl.name)) {
 							found = true;
 							break;
@@ -473,22 +477,45 @@ public class Identification implements Visitor<Object, Object> {
 				}
 			}
 		} else {
-			for (FieldDecl fieldDecl: fieldDeclList) {
-				if (id.spelling.equals(fieldDecl.name)) {
-					found = true;
-					break;
+			if (isThis) {
+				for (FieldDecl fieldDecl: fieldDeclList) {
+					if (id.spelling.equals(fieldDecl.name)) {
+						found = true;
+						break;
+					}
 				}
-			}
-			if (baseLevel && !found) {
-				MethodDeclList methodDeclList = classDecl.methodDeclList;
-				for (MethodDecl methodDecl: methodDeclList) {
+				if (baseLevel && !found) {
+					MethodDeclList methodDeclList = classDecl.methodDeclList;
+					for (MethodDecl methodDecl: methodDeclList) {
 						if (id.spelling.equals(methodDecl.name)) {
 							found = true;
 							break;
 						}
+					}
+				}
+			} else {
+				for (FieldDecl fieldDecl: fieldDeclList) {
+					if (!fieldDecl.isPrivate) {
+						if (id.spelling.equals(fieldDecl.name)) {
+							found = true;
+							break;
+						}
+					}
+				}
+				if (baseLevel && !found) {
+					MethodDeclList methodDeclList = classDecl.methodDeclList;
+					for (MethodDecl methodDecl: methodDeclList) {
+						if (!methodDecl.isPrivate) {
+							if (id.spelling.equals(methodDecl.name)) {
+								found = true;
+								break;
+							}
+						}
+					}
 				}
 			}
 		}
+
 		if (!found) {
 			throwError(((QualRef)arg).posn.start, identificationError, "Field or Method could not be found or " +
 					"there is an issue with access modifiers!");

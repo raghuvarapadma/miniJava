@@ -30,8 +30,12 @@ public class Compiler {
 			try {
 				Identification identification = new Identification(ast);
 				TypeChecking typechecking = new TypeChecking(ast);
-				System.out.println("Parsed successfully!");
-				System.exit(0);
+				if (TypeChecking.throwError) {
+					System.exit(4);
+				} else {
+					System.out.println("Parsed successfully!");
+					System.exit(0);
+				}
 			} catch (ContextualAnalysisException e) {
 				System.exit(4);;
 			}
