@@ -472,6 +472,14 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 			} else if (expressionLeftTypeDenoter.typeKind.equals(TypeKind.BOOLEAN) && expressionRightTypeDenoter.typeKind.equals(
 					TypeKind.BOOLEAN)) {
 				return new BaseType(TypeKind.BOOLEAN, null);
+			} else if ((expressionLeftTypeDenoter.typeKind.equals(TypeKind.CLASS) && expressionRightTypeDenoter.typeKind.equals(
+					TypeKind.CLASS))) {
+				if (((ClassType)(((RefExpr)expr.left).ref.declaration.type)).className.spelling.equals(((ClassType)(((RefExpr)expr.right).ref.declaration.type)).className.spelling)) {
+					return new BaseType(TypeKind.BOOLEAN, null);
+				} else {
+					throwError(expr.posn.start, typeError, "Cannot compare two classes which are not of the same type!");
+					return new BaseType(TypeKind.BOOLEAN, null);
+				}
 			}
 			else {
 				String operatorSpelling = expr.operator.spelling;
