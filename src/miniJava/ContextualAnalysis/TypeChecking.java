@@ -101,7 +101,7 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 	public TypeDenoter visitBlockStmt(BlockStmt stmt, Object arg) {
 		StatementList statementList = stmt.sl;
 		for (Statement statement: statementList) {
-			statement.visit(this, null);
+			statement.visit(this, arg);
 		}
 		return null;
 	}
@@ -145,7 +145,7 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 				} else if (((ArrayType) varDecl).eltType instanceof ClassType) {
 					if (((ArrayType) initExp).eltType instanceof ClassType) {
 						if (!((ClassType) ((ArrayType) varDecl).eltType).className.spelling.equals(((ClassType) ((ArrayType)
-								varDecl).eltType).className.spelling)) {
+								initExp).eltType).className.spelling)) {
 							throwError(stmt.posn.start, typeError, "Class types of arrays do not match!");
 							throwError = true;
 						}
@@ -260,24 +260,39 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 		TypeDenoter exp = stmt.exp.visit(this, null);
 		if (ix.typeKind.equals(TypeKind.INT)) {
 			if (ref instanceof ArrayType) {
-				if (exp instanceof ArrayType) {
-					if (!((ArrayType) ref).eltType.typeKind.equals(((ArrayType) exp).eltType.typeKind)) {
-						throwError(ref.posn.start, typeError, "Type of expression does not match element type of" +
-								" reference!");
+				if ((((ArrayType) ref).eltType).typeKind.equals(TypeKind.CLASS)) {
+					if (exp.typeKind.equals(TypeKind.CLASS)) {
+						if (((ClassType)((ArrayType) ref).eltType).className.spelling.equals(((ClassType)exp).className.spelling)) {
+							return null;
+						} else {
+							throwError(stmt.posn.start, typeError, "Class types do not match!");
+							throwError = true;
+							return null;
+						}
+					} else if (exp.typeKind.equals(TypeKind.NULL)) {
+						return null;
+					} else {
+						throwError(stmt.posn.start, typeError, "Element types of statement do not match - both sides" +
+								" must be of TypeKind CLASS!");
 						throwError = true;
+						return null;
 					}
 				} else {
-					throwError(ref.posn.start, typeError, "exp is not an ArrayType!");
-					throwError = true;
+					if ((((ArrayType) ref).eltType).typeKind.equals(exp.typeKind)) {
+						return null;
+					} else {
+						throwError(stmt.posn.start, typeError, "Element types of statement do not match - both sides!");
+						throwError = true;
+						return null;
+					}
 				}
-				return null;
 			} else {
-				throwError(ref.posn.start, typeError, "ref is not an ArrayType!");
+				throwError(stmt.posn.start, typeError, "Reference must point to TypeKind of ARRAY!");
 				throwError = true;
 				return null;
 			}
 		} else {
-			throwError(ix.posn.start, typeError, "Index value needs to be an integer!");
+			throwError(stmt.posn.start, typeError, "ix needs be of TypeKind INT!");
 			throwError = true;
 			return null;
 		}
@@ -295,18 +310,88 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 			ParameterDeclList parameterDeclList = ((MethodDecl) stmt.methodRef.declaration).parameterDeclList;
 			for (Expression expression: stmt.argList) {
 				TypeDenoter expressionTypeDenoter = expression.visit(this, null);
-				TypeKind expressionTypeKind = expressionTypeDenoter.typeKind;
-				if (!expressionTypeKind.equals(parameterDeclList.get(i).type.typeKind)) {
-					throwError(expression.posn.start, typeError, "Parameter does not match the require type kind!");
+				TypeDenoter parameterTypeDenoter = parameterDeclList.get(i).type;
+				if (parameterTypeDenoter instanceof ClassType) {
+					if (expressionTypeDenoter instanceof ClassType) {
+						if (((ClassType) parameterTypeDenoter).className.spelling.equals(((ClassType) expressionTypeDenoter).
+								className.spelling)) {
+							i++;
+							continue;
+						} else {
+							throwError(stmt.posn.start, typeError, "VarDeclStmt is not valid because class types don't " +
+									"match!");
+							throwError = true;
+						}
+					} else if (expressionTypeDenoter.typeKind.equals(TypeKind.NULL)) {
+						i++;
+						continue;
+					} else {
+						throwError(stmt.posn.start, typeError, "Right hand side of VarDeclStmt must be of type class if " +
+								"left hand side if of type class!");
+						throwError = true;
+					}
+				} else if (parameterTypeDenoter instanceof ArrayType) {
+					if (expressionTypeDenoter.typeKind.equals(TypeKind.NULL)) {
+						i++;
+						continue;
+					} else if (!(expressionTypeDenoter instanceof ArrayType)) {
+						throwError(stmt.posn.start, typeError, "Right hand side of VarDeclStmt must be of type array if " +
+								"left hand side if of type array!");
+						throwError = true;
+					} else {
+						if (((ArrayType) parameterTypeDenoter).eltType.typeKind.equals(TypeKind.INT)) {
+							if (!(((ArrayType) expressionTypeDenoter).eltType.typeKind.equals(TypeKind.INT))) {
+								throwError(stmt.posn.start, typeError, "Mismatch of element types for array types on both " +
+										"sides of the statement!");
+								throwError = true;
+							} else {
+								i++;
+								continue;
+							}
+						} else if (((ArrayType) parameterTypeDenoter).eltType instanceof ClassType) {
+							if (((ArrayType) expressionTypeDenoter).eltType instanceof ClassType) {
+								if (!((ClassType) ((ArrayType) parameterTypeDenoter).eltType).className.spelling.equals(((ClassType) ((ArrayType) expressionTypeDenoter).
+										eltType).className.spelling)) {
+									throwError(stmt.posn.start, typeError, "Class types of arrays do not match!");
+									throwError = true;
+								} else {
+									i++;
+									continue;
+								}
+							} else {
+								throwError(stmt.posn.start, typeError, "Array Types do not match!");
+								throwError = true;
+							}
+						} else {
+							throwError(stmt.posn.start, typeError, "Array types do not have valid element types!");
+							throwError = true;
+						}
+					}
+				} else if (parameterTypeDenoter instanceof BaseType) {
+					if (parameterTypeDenoter.typeKind.equals(TypeKind.INT) || parameterTypeDenoter.typeKind.equals(TypeKind.BOOLEAN)) {
+						if (parameterTypeDenoter.typeKind != expressionTypeDenoter.typeKind) {
+							throwError(stmt.posn.start, typeError, "VarDeclStmt is not valid because types don't match!");
+							throwError = true;
+						} else {
+							i++;
+							continue;
+						}
+					} else {
+						throwError(stmt.posn.start, typeError, "Left side of VarDecl is not of type INT or BOOLEAN!");
+						throwError = true;
+					}
+				} else {
+					throwError(stmt.posn.start, typeError, "VarDecl in VarDeclStmt is not of a valid Type!");
 					throwError = true;
 				}
 				i++;
 			}
+			return null;
 		} else {
 			throwError(stmt.posn.start, typeError, "Fields cannot be called as methods!");
 			throwError = true;
+			return null;
 		}
-		return null;
 	}
 
 	@Override
@@ -389,10 +474,10 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 
 	@Override
 	public TypeDenoter visitWhileStmt(WhileStmt stmt, Object arg) {
-		TypeDenoter condition = stmt.cond.visit(this, null);
-		stmt.body.visit(this, null);
+		TypeDenoter condition = stmt.cond.visit(this, arg);
+		stmt.body.visit(this, arg);
 		if (!condition.typeKind.equals(TypeKind.BOOLEAN)) {
-			throwError(condition.posn.start, typeError, "Condition in if statement should be of type boolean!");
+			throwError(stmt.posn.start, typeError, "Condition in if statement should be of type boolean!");
 			throwError = true;
 		}
 		return null;
@@ -534,9 +619,78 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 				ParameterDeclList parameterDeclList = ((MethodDecl) expr.functionRef.declaration).parameterDeclList;
 				for (Expression expression: expr.argList) {
 					TypeDenoter expressionTypeDenoter = expression.visit(this, null);
-					TypeKind expressionTypeKind = expressionTypeDenoter.typeKind;
-					if (!expressionTypeKind.equals(parameterDeclList.get(i).type.typeKind)) {
-						throwError(expression.posn.start, typeError, "Parameter does not match the require type kind!");
+					TypeDenoter parameterTypeDenoter = parameterDeclList.get(i).type;
+					if (parameterTypeDenoter instanceof ClassType) {
+						if (expressionTypeDenoter instanceof ClassType) {
+							if (((ClassType) parameterTypeDenoter).className.spelling.equals(((ClassType) expressionTypeDenoter).
+									className.spelling)) {
+								i++;
+								continue;
+							} else {
+								throwError(expr.posn.start, typeError, "VarDeclStmt is not valid because class types don't " +
+										"match!");
+								throwError = true;
+							}
+						} else if (expressionTypeDenoter.typeKind.equals(TypeKind.NULL)) {
+							i++;
+							continue;
+						} else {
+							throwError(expr.posn.start, typeError, "Right hand side of VarDeclStmt must be of type class if " +
+									"left hand side if of type class!");
+							throwError = true;
+						}
+					} else if (parameterTypeDenoter instanceof ArrayType) {
+						if (expressionTypeDenoter.typeKind.equals(TypeKind.NULL)) {
+							i++;
+							continue;
+						} else if (!(expressionTypeDenoter instanceof ArrayType)) {
+							throwError(expr.posn.start, typeError, "Right hand side of VarDeclStmt must be of type array if " +
+									"left hand side if of type array!");
+							throwError = true;
+						} else {
+							if (((ArrayType) parameterTypeDenoter).eltType.typeKind.equals(TypeKind.INT)) {
+								if (!(((ArrayType) expressionTypeDenoter).eltType.typeKind.equals(TypeKind.INT))) {
+									throwError(expr.posn.start, typeError, "Mismatch of element types for array types on both " +
+											"sides of the statement!");
+									throwError = true;
+								} else {
+									i++;
+									continue;
+								}
+							} else if (((ArrayType) parameterTypeDenoter).eltType instanceof ClassType) {
+								if (((ArrayType) expressionTypeDenoter).eltType instanceof ClassType) {
+									if (!((ClassType) ((ArrayType) parameterTypeDenoter).eltType).className.spelling.equals(((ClassType) ((ArrayType) expressionTypeDenoter).
+											eltType).className.spelling)) {
+										throwError(expr.posn.start, typeError, "Class types of arrays do not match!");
+										throwError = true;
+									} else {
+										i++;
+										continue;
+									}
+								} else {
+									throwError(expr.posn.start, typeError, "Array Types do not match!");
+									throwError = true;
+								}
+							} else {
+								throwError(expr.posn.start, typeError, "Array types do not have valid element types!");
+								throwError = true;
+							}
+						}
+					} else if (parameterTypeDenoter instanceof BaseType) {
+						if (parameterTypeDenoter.typeKind.equals(TypeKind.INT) || parameterTypeDenoter.typeKind.equals(TypeKind.BOOLEAN)) {
+							if (parameterTypeDenoter.typeKind != expressionTypeDenoter.typeKind) {
+								throwError(expr.posn.start, typeError, "VarDeclStmt is not valid because types don't match!");
+								throwError = true;
+							} else {
+								i++;
+								continue;
+							}
+						} else {
+							throwError(expr.posn.start, typeError, "Left side of VarDecl is not of type INT or BOOLEAN!");
+							throwError = true;
+						}
+					} else {
+						throwError(expr.posn.start, typeError, "VarDecl in VarDeclStmt is not of a valid Type!");
 						throwError = true;
 					}
 					i++;

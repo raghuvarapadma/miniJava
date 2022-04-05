@@ -29,7 +29,7 @@ public class IdentificationTable {
 		if (level == 4) {
 			HashMap<String, Declaration> levelThreeHashMap = this.stack.pop();
 			if (levelFourHashMap.containsKey(string) || levelThreeHashMap.containsKey(string)) {
-				System.out.println("*** line " + declaration.posn.start + ": Identification Error + Each scope level can " +
+				System.out.println("*** line " + declaration.posn.start + ": Identification Error - Each scope level can " +
 						"only have at most one declaration for an identifier!");
 				throw new ContextualAnalysisException();
 			} else {
@@ -40,7 +40,7 @@ public class IdentificationTable {
 		}
 		else {
 			if (levelFourHashMap.containsKey(string)) {
-				System.out.println("*** line " + declaration.posn.start + ": Identification Error + Declarations at level" +
+				System.out.println("*** line " + declaration.posn.start + ": Identification Error - Declarations at level" +
 						" 4 or higher may not hide declarations at levels 3 or higher!");
 				throw new ContextualAnalysisException();
 			} else {

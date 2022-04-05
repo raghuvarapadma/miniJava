@@ -443,7 +443,7 @@ public class Parser {
 				Expression expressionParen = parseExpression();
 				accept(TokenKind.R_PAREN);
 				return expressionParen;
-			case NUM: case TRUE: case FALSE:
+			case NUM: case TRUE: case FALSE: case NULL:
 				Token tokenLiteral = currentToken;
 				acceptIt();
 				finish(expressionSourcePosition);
