@@ -17,8 +17,6 @@ public class Identification implements Visitor<Object, Object> {
 	public boolean baseLevel = false;
 	public boolean inStaticMethod = false;
 
-	private final String identificationError = "Identification Error";
-
 	public Identification(Package ast) {
 		table = new IdentificationTable();
 		currentClassDecl = null;
@@ -126,7 +124,7 @@ public class Identification implements Visitor<Object, Object> {
 			type.className.declaration = classesDecl.get(type.className.spelling);
 			return null;
 		} else {
-			throwError(type.posn.start, identificationError, "Need to declare object with valid ClassType");
+			throwError(type.posn.start, "Type needs to be set to a valid Class!");
 			throw new ContextualAnalysisException();
 		}
 	}
@@ -173,7 +171,7 @@ public class Identification implements Visitor<Object, Object> {
 	public Object visitCallStmt(CallStmt stmt, Object arg) {
 		stmt.methodRef.visit(this, null);
 		if (!(stmt.methodRef.declaration instanceof MethodDecl)) {
-			throwError(stmt.posn.start, identificationError, "Need to call method with valid identifier!");
+			throwError(stmt.posn.start, "Need to call a valid Method!!");
 			throw new ContextualAnalysisException();
 		}
 		for (Expression expression: stmt.argList) {
@@ -184,7 +182,12 @@ public class Identification implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitReturnStmt(ReturnStmt stmt, Object arg) {
-		return stmt.returnExpr.visit(this, null);
+		if (stmt.returnExpr == null) {
+			return null;
+		} else {
+			stmt.returnExpr.visit(this, null);
+			return null;
+		}
 	}
 
 	@Override
@@ -192,27 +195,19 @@ public class Identification implements Visitor<Object, Object> {
 		stmt.cond.visit(this, null);
 		table.openScope();
 		if (stmt.thenStmt instanceof VarDeclStmt) {
-			throwError(stmt.posn.start, identificationError, "A variable declaration cannot be the solitary statement" +
-					" in a branch of a conditional statement");
+			throwError(stmt.posn.start, "A variable declaration cannot be the solitary " +
+					"statement in a branch of a conditional statement");
 			throw new ContextualAnalysisException();
-		} else if (stmt.thenStmt instanceof BlockStmt) {
-			boolean valid = false;
-			for (Statement statement: ((BlockStmt) stmt.thenStmt).sl) {
-				if (!(statement instanceof VarDeclStmt)) {
-					valid = true;
-					break;
-				}
-			}
-			if (!valid) {
-				throwError(stmt.posn.start, identificationError, "A variable declaration cannot be the solitary statement" +
-						" in a branch of a conditional statement");
-				throw new ContextualAnalysisException();
-			}
 		}
 		stmt.thenStmt.visit(this, null);
 		table.closeScope();
 		table.openScope();
 		if (stmt.elseStmt != null) {
+			if (stmt.elseStmt instanceof VarDeclStmt) {
+				throwError(stmt.posn.start, "A variable declaration cannot be the solitary " +
+						"statement in a branch of a conditional statement");
+				throw new ContextualAnalysisException();
+			}
 			stmt.elseStmt.visit(this, null);
 		}
 		table.closeScope();
@@ -223,6 +218,11 @@ public class Identification implements Visitor<Object, Object> {
 	public Object visitWhileStmt(WhileStmt stmt, Object arg) {
 		stmt.cond.visit(this, null);
 		table.openScope();
+		if (stmt.body instanceof VarDeclStmt) {
+			throwError(stmt.posn.start, "A variable declaration cannot be the solitary " +
+					"statement in a branch of a conditional statement");
+			throw new ContextualAnalysisException();
+		}
 		stmt.body.visit(this, null);
 		table.closeScope();
 		return null;
@@ -260,7 +260,7 @@ public class Identification implements Visitor<Object, Object> {
 	public Object visitCallExpr(CallExpr expr, Object arg) {
 		expr.functionRef.visit(this, arg);
 		if (!(expr.functionRef.declaration instanceof MethodDecl)) {
-			throwError(expr.posn.start, identificationError, "Need to call method with valid identifier!");
+			throwError(expr.posn.start, "Need to call a valid Method!");
 			throw new ContextualAnalysisException();
 		}
 		for (Expression expression: expr.argList) {
@@ -292,74 +292,30 @@ public class Identification implements Visitor<Object, Object> {
 	public Object visitThisRef(ThisRef ref, Object arg) {
 		ref.declaration = currentClassDecl;
 		if (inStaticMethod) {
-			Identifier id = ((QualRef)arg).id;
-			boolean found = false;
-			FieldDeclList fieldDeclList = currentClassDecl.fieldDeclList;
-			for (FieldDecl fieldDecl: fieldDeclList) {
-				if (fieldDecl.isStatic) {
-					if (id.spelling.equals(fieldDecl.name)) {
-						found = true;
-					}
-				}
-			}
-			if (!found) {
-				throwError(((QualRef)arg).posn.start, identificationError, "Field or Method could not be found or " +
-						"there is an issue with access modifiers!");
-				throw new ContextualAnalysisException();
-			}
+			throwError(((QualRef)arg).posn.start, "Cannot use THIS keyword inside of static method!");
+			throw new ContextualAnalysisException();
 		}
 		return null;
 	}
 
 	@Override
 	public Object visitIdRef(IdRef ref, Object arg) {
-		if (arg instanceof String) {
-			if (ref.id.spelling.equals(arg)) {
-				throwError(ref.posn.start, identificationError, "Cannot use the declared variable in the " +
-						"initializing expression");
-				throw new ContextualAnalysisException();
-			}
-			Declaration declaration = table.retrieve(ref.id.spelling);
-			if (declaration == null) {
-				throwError(ref.posn.start, identificationError, "Cannot reference undeclared identifier!");
-				throw new ContextualAnalysisException();
-			}
-			if (declaration instanceof FieldDecl || declaration instanceof MethodDecl) {
-				if (inStaticMethod) {
-					if (!((MemberDecl) declaration).isStatic) {
-						throwError(ref.posn.start, identificationError, "Cannot call an class attribute inside of " +
-								"static context");
-						throw new ContextualAnalysisException();
-					} else {
-						ref.declaration = declaration;
-						ref.id.declaration = declaration;
-					}
-				} else {
-					ref.declaration = declaration;
-					ref.id.declaration = declaration;
-				}
-			} else if (declaration instanceof ClassDecl) {
-				throwError(ref.posn.start, identificationError, "Cannot reference Class on it's own");
-				throw new ContextualAnalysisException();
-			} else {
-				ref.declaration = declaration;
-				ref.id.declaration = declaration;
-			}
-		} else {
-			if (classesDecl.containsKey(ref.id.spelling)) {
-				ref.id.declaration = classesDecl.get(ref.id.spelling);
-				ref.declaration = classesDecl.get(ref.id.spelling);
-			} else {
+		if (arg != null) {
+			if (arg instanceof QualRef) {
 				Declaration declaration = table.retrieve(ref.id.spelling);
 				if (declaration == null) {
-					throwError(ref.posn.start, identificationError, "Cannot reference undeclared identifier!");
+					throwError(ref.posn.start, "Cannot reference undeclared identifier!");
 					throw new ContextualAnalysisException();
 				}
-				if (declaration instanceof FieldDecl || declaration instanceof MethodDecl) {
+				if (declaration instanceof MethodDecl) {
+					throwError(ref.posn.start, "Can only reference a Method towards the end of" +
+							" a reference chain!");
+					throw new ContextualAnalysisException();
+				} else if (declaration instanceof FieldDecl) {
 					if (inStaticMethod) {
 						if (!((MemberDecl) declaration).isStatic) {
-							throwError(ref.posn.start, identificationError, "Cannot call an class attribute inside of " +
-									"static context");
+							throwError(ref.posn.start, "Cannot call an class attribute inside of " +
+									"static context!");
 							throw new ContextualAnalysisException();
 						} else {
 							ref.declaration = declaration;
@@ -370,9 +326,72 @@ public class Identification implements Visitor<Object, Object> {
 						ref.id.declaration = declaration;
 					}
 				} else {
-					ref.id.declaration = declaration;
 					ref.declaration = declaration;
+					ref.id.declaration = declaration;
 				}
+			} else if (arg instanceof String) {
+				if (arg.equals(ref.id.spelling)) {
+					throwError(ref.posn.start, "Cannot use declared variable in " +
+							"initializing expression!");
+					throw new ContextualAnalysisException();
+				}
+				Declaration declaration = table.retrieve(ref.id.spelling);
+				if (declaration == null) {
+					throwError(ref.posn.start, "Cannot reference undeclared identifier!");
+					throw new ContextualAnalysisException();
+				}
+				if (declaration instanceof FieldDecl || declaration instanceof MethodDecl) {
+					if (inStaticMethod) {
+						if (!((MemberDecl) declaration).isStatic) {
+							throwError(ref.posn.start, "Cannot call an class attribute inside of " +
+									"static context!");
+							throw new ContextualAnalysisException();
+						} else {
+							ref.declaration = declaration;
+							ref.id.declaration = declaration;
+						}
+					} else {
+						ref.declaration = declaration;
+						ref.id.declaration = declaration;
+					}
+				}
+//				else if (declaration instanceof ClassDecl) {
+//					throwError(ref.posn.start, "Cannot reference Class identifier on it's own!");
+//					throw new ContextualAnalysisException();
+//				}
+				else {
+					ref.declaration = declaration;
+					ref.id.declaration = declaration;
+				}
+			}
+		} else {
+			Declaration declaration = table.retrieve(ref.id.spelling);
+			if (declaration == null) {
+				throwError(ref.posn.start, "Cannot reference undeclared identifier!");
+				throw new ContextualAnalysisException();
+			}
+			if (declaration instanceof FieldDecl || declaration instanceof MethodDecl) {
+				if (inStaticMethod) {
+					if (!((MemberDecl) declaration).isStatic) {
+						throwError(ref.posn.start, "Cannot reference a class attribute inside of " +
+								"static context!");
+						throw new ContextualAnalysisException();
+					} else {
+						ref.declaration = declaration;
+						ref.id.declaration = declaration;
+					}
+				} else {
+					ref.declaration = declaration;
+					ref.id.declaration = declaration;
+				}
+			}
+//			else if (declaration instanceof ClassDecl) {
+//				throwError(ref.posn.start, "Cannot reference Class identifier on it's own!");
+//				throw new ContextualAnalysisException();
+//			}
+			else {
+				ref.declaration = declaration;
+				ref.id.declaration = declaration;
 			}
 		}
 		return null;
@@ -393,7 +412,7 @@ public class Identification implements Visitor<Object, Object> {
 					fieldDeclList = ((ClassDecl)classesDecl.get(((ClassType)(ref.ref.declaration).type).className.
 							spelling)).fieldDeclList;
 				} else {
-					throwError(ref.posn.start, identificationError, "References can only be of TypeKind class!");
+					throwError(ref.posn.start, "References can only be of TypeKind class!");
 					throw new ContextualAnalysisException();
 				}
 			}
@@ -423,7 +442,8 @@ public class Identification implements Visitor<Object, Object> {
 			}
 		}
 		if (ref.declaration == null) {
-			throwError(ref.posn.start, identificationError, "Could not grab the correct declaration");
+			throwError(ref.posn.start, "Field or Method reference could not be found, so " +
+					"could not grab the correct declaration!");
 			throw new ContextualAnalysisException();
 		}
 		if (arg == null) {
@@ -517,8 +537,8 @@ public class Identification implements Visitor<Object, Object> {
 		}
 
 		if (!found) {
-			throwError(((QualRef)arg).posn.start, identificationError, "Field or Method could not be found or " +
-					"there is an issue with access modifiers!");
+			throwError(((QualRef)arg).posn.start, "Field or Method reference could not be " +
+					"found or there is an issue with access modifiers!");
 			throw new ContextualAnalysisException();
 		}
 		return null;
@@ -544,7 +564,7 @@ public class Identification implements Visitor<Object, Object> {
 		return null;
 	}
 
-	private void throwError(int lineNumber, String errorKind, String message) {
-		System.out.println("*** line " + lineNumber + ": " + errorKind + " - " + message);
+	private void throwError(int lineNumber, String message) {
+		System.out.println("*** line " + lineNumber + ": " + "Identification Error" + " - " + message);
 	}
 }

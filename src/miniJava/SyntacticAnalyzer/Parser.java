@@ -270,8 +270,6 @@ public class Parser {
 				Expression expressionReturn = null;
 				if (currentToken.getTokenKind() != TokenKind.SEMICOLON) {
 					expressionReturn = parseExpression();
-				} else {
-					expressionReturn = new LiteralExpr(new NullLiteral(currentToken), currentToken.getSourcePosition());
 				}
 				accept(TokenKind.SEMICOLON);
 				finish(returnSourcePosition);
