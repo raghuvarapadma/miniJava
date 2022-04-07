@@ -171,7 +171,7 @@ public class Identification implements Visitor<Object, Object> {
 	public Object visitCallStmt(CallStmt stmt, Object arg) {
 		stmt.methodRef.visit(this, null);
 		if (!(stmt.methodRef.declaration instanceof MethodDecl)) {
-			throwError(stmt.posn.start, "Need to call a valid Method!!");
+			throwError(stmt.posn.start, "Need to call a valid Method!");
 			throw new ContextualAnalysisException();
 		}
 		for (Expression expression: stmt.argList) {
@@ -355,10 +355,6 @@ public class Identification implements Visitor<Object, Object> {
 						ref.id.declaration = declaration;
 					}
 				}
-//				else if (declaration instanceof ClassDecl) {
-//					throwError(ref.posn.start, "Cannot reference Class identifier on it's own!");
-//					throw new ContextualAnalysisException();
-//				}
 				else {
 					ref.declaration = declaration;
 					ref.id.declaration = declaration;
@@ -385,10 +381,6 @@ public class Identification implements Visitor<Object, Object> {
 					ref.id.declaration = declaration;
 				}
 			}
-//			else if (declaration instanceof ClassDecl) {
-//				throwError(ref.posn.start, "Cannot reference Class identifier on it's own!");
-//				throw new ContextualAnalysisException();
-//			}
 			else {
 				ref.declaration = declaration;
 				ref.id.declaration = declaration;

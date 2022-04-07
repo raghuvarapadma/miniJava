@@ -695,8 +695,10 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 
 	private void catchClassReference(Expression expression) {
 		if (expression instanceof RefExpr) {
-			if (((RefExpr) expression).ref.declaration instanceof ClassDecl) {
-				throwError(expression.posn.start, typeError, "Cannot reference a Class on its own!");
+			if (((RefExpr) expression).ref instanceof IdRef) {
+				if (((RefExpr) expression).ref.declaration instanceof ClassDecl) {
+					throwError(expression.posn.start, typeError, "Cannot reference a Class on its own!");
+				}
 			}
 		}
 	}
