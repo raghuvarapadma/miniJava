@@ -33,7 +33,6 @@ public class Compiler {
 				if (TypeChecking.throwError) {
 					System.exit(4);
 				} else {
-					System.out.println("Parsed successfully!");
 					System.exit(0);
 				}
 			} catch (ContextualAnalysisException e) {
