@@ -60,11 +60,11 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 			statement.visit(this, md);
 		}
 		if (!isVoid && !(statementList.get(statementList.size()-1) instanceof ReturnStmt)) {
-			throwError(md.posn.start, typeError, "Methods which have a non-void return type must have a return " +
+			throwError(md.posn.start, "Methods which have a non-void return type must have a return " +
 					"statement as the last statement in the method!");
 		}
 		if (!isVoid && !returnStatement) {
-			throwError(md.posn.start, typeError, "Method that has a non-void return type should return something!");
+			throwError(md.posn.start, "Method that has a non-void return type should return something!");
 		}
 		return null;
 	}
@@ -113,14 +113,14 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 				if (((ClassType)varDecl).className.spelling.equals(((ClassType)initExp).className.spelling)) {
 					return null;
 				} else {
-					throwError(stmt.posn.start, typeError, "Mismatch of class types on both sides of the variable" +
+					throwError(stmt.posn.start, "Mismatch of class types on both sides of the variable" +
 							" declaration statement!");
 					return null;
 				}
 			} else if (initExp.typeKind.equals(TypeKind.NULL)) {
 				return null;
 			} else {
-				throwError(stmt.posn.start, typeError, "If the left side of a variable declaration is of a class " +
+				throwError(stmt.posn.start, "If the left side of a variable declaration is of a class " +
 						"type, the right must be too!");
 				return null;
 			}
@@ -128,13 +128,13 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 			if (initExp.typeKind.equals(TypeKind.NULL)) {
 				return null;
 			} else if (!(initExp instanceof ArrayType)) {
-				throwError(stmt.posn.start, typeError, "If the left side of a variable declaration is of an array " +
+				throwError(stmt.posn.start, "If the left side of a variable declaration is of an array " +
 						"type, the right must be too!");
 				return null;
 			} else {
 				if (((ArrayType) varDecl).eltType.typeKind.equals(TypeKind.INT)) {
 					if (!(((ArrayType) initExp).eltType.typeKind.equals(TypeKind.INT))) {
-						throwError(stmt.posn.start, typeError, "Mismatch of element types for the arrays on both " +
+						throwError(stmt.posn.start, "Mismatch of element types for the arrays on both " +
 								"sides of the statement!");
 					}
 					return null;
@@ -142,26 +142,26 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 					if (((ArrayType) initExp).eltType instanceof ClassType) {
 						if (!((ClassType) ((ArrayType) varDecl).eltType).className.spelling.equals(((ClassType) ((ArrayType)
 								initExp).eltType).className.spelling)) {
-							throwError(stmt.posn.start, typeError, "Mismatch of element types for the arrays on both " +
+							throwError(stmt.posn.start, "Mismatch of element types for the arrays on both " +
 									"sides of the statement!");
 						}
 					} else {
-						throwError(stmt.posn.start, typeError, "If the left side of a variable declaration is of an " +
+						throwError(stmt.posn.start, "If the left side of a variable declaration is of an " +
 								"array with an element type of class, the right side must be too!");
 					}
 					return null;
 				} else {
-					throwError(stmt.posn.start, typeError, "Array types do not have valid element types!");
+					throwError(stmt.posn.start, "Array types do not have valid element types!");
 					return null;
 				}
 			}
 		} else if (varDecl.typeKind.equals(TypeKind.INT) || varDecl.typeKind.equals(TypeKind.BOOLEAN)) {
 			if (varDecl.typeKind != initExp.typeKind) {
-				throwError(stmt.posn.start, typeError, "Mismatch of base types on both sides of the statements!");
+				throwError(stmt.posn.start, "Mismatch of base types on both sides of the statements!");
 			}
 			return null;
 		} else {
-			throwError(stmt.posn.start, typeError, "Declaring type is not a valid type!");
+			throwError(stmt.posn.start, "Declaring type is not a valid type!");
 			return null;
 		}
 	}
@@ -171,7 +171,7 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 		TypeDenoter ref = stmt.ref.visit(this, null);
 		TypeDenoter val = stmt.val.visit(this, stmt.ref.declaration.type);
 		if ((stmt.ref.declaration instanceof ClassDecl) || (stmt.ref.declaration instanceof MethodDecl)) {
-			throwError(stmt.posn.start, typeError, "The reference cannot directly point to a Class or " +
+			throwError(stmt.posn.start, "The reference cannot directly point to a Class or " +
 					"Method identifier!");
 			return null;
 		} else {
@@ -181,14 +181,14 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 					if (((ClassType)ref).className.spelling.equals(((ClassType)val).className.spelling)) {
 						return null;
 					}  else {
-						throwError(stmt.posn.start, typeError, "Mismatch of class types on both sides of the assignment " +
+						throwError(stmt.posn.start, "Mismatch of class types on both sides of the assignment " +
 								"statement!");
 						return null;
 					}
 				} else if (val.typeKind.equals(TypeKind.NULL)) {
 					return null;
 				} else {
-					throwError(stmt.posn.start, typeError, "If the left side of an assigment statement is of a class " +
+					throwError(stmt.posn.start, "If the left side of an assigment statement is of a class " +
 							"type, the right must be too!");
 					return null;
 				}
@@ -196,13 +196,13 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 				if (val.typeKind.equals(TypeKind.NULL)) {
 					return null;
 				} else if (!(val instanceof ArrayType)) {
-					throwError(stmt.posn.start, typeError, "Right hand side of VarDeclStmt must be of type array if " +
+					throwError(stmt.posn.start, "Right hand side of VarDeclStmt must be of type array if " +
 							"left, the right must be too!");
 					return null;
 				} else {
 					if (((ArrayType) ref).eltType.typeKind.equals(TypeKind.INT)) {
 						if (!(((ArrayType) val).eltType.typeKind.equals(TypeKind.INT))) {
-							throwError(stmt.posn.start, typeError, "Mismatch of element types for array types on both " +
+							throwError(stmt.posn.start, "Mismatch of element types for array types on both " +
 									"sides of the statement!");
 						}
 						return null;
@@ -210,26 +210,26 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 						if (((ArrayType) val).eltType instanceof ClassType) {
 							if (!((ClassType) ((ArrayType) ref).eltType).className.spelling.equals(((ClassType) ((ArrayType) val).
 									eltType).className.spelling)) {
-								throwError(stmt.posn.start, typeError, "Mismatch of element types for the arrays on both " +
+								throwError(stmt.posn.start, "Mismatch of element types for the arrays on both " +
 										"sides of the statement!");
 							}
 						} else {
-							throwError(stmt.posn.start, typeError, "If the left side of a variable declaration is of " +
+							throwError(stmt.posn.start, "If the left side of a variable declaration is of " +
 									"an array with an element type of class, the right side must be too!");
 						}
 						return null;
 					} else {
-						throwError(stmt.posn.start, typeError, "Array types do not have valid element types!");
+						throwError(stmt.posn.start, "Array types do not have valid element types!");
 						return null;
 					}
 				}
 			} else if (ref.typeKind.equals(TypeKind.INT) || ref.typeKind.equals(TypeKind.BOOLEAN)) {
 				if (ref.typeKind != val.typeKind) {
-					throwError(stmt.posn.start, typeError, "Mismatch of base types on both sides of the statements!");
+					throwError(stmt.posn.start, "Mismatch of base types on both sides of the statements!");
 				}
 				return null;
 			} else {
-				throwError(ref.posn.start, typeError, "Reference type is not a valid type!");
+				throwError(ref.posn.start, "Reference type is not a valid type!");
 				return null;
 			}
 		}
@@ -247,29 +247,29 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 						catchClassReference(stmt.exp);
 						if (!((ClassType) ((ArrayType) ref).eltType).className.spelling.equals(
 								((ClassType)exp).className.spelling)) {
-							throwError(stmt.posn.start, typeError, "Mismatch of element types - Class types do not match " +
+							throwError(stmt.posn.start, "Mismatch of element types - Class types do not match " +
 									"up!");
 						}
 						return null;
 					} else if (exp.typeKind.equals(TypeKind.NULL)) {
 						return null;
 					} else {
-						throwError(stmt.posn.start, typeError, "Element types of statement do not match - both sides" +
+						throwError(stmt.posn.start, "Element types of statement do not match - both sides" +
 								" must have element types of Class!");
 						return null;
 					}
 				} else {
 					if (!(((ArrayType) ref).eltType).typeKind.equals(exp.typeKind)) {
-						throwError(stmt.posn.start, typeError, "Element types of statement do not match - both sides!");
+						throwError(stmt.posn.start, "Element types of statement do not match - both sides!");
 					}
 					return null;
 				}
 			} else {
-				throwError(stmt.posn.start, typeError, "Cannot index a non-array variable!");
+				throwError(stmt.posn.start, "Cannot index a non-array variable!");
 				return null;
 			}
 		} else {
-			throwError(stmt.posn.start, typeError, "An integer is required indexing an array!");
+			throwError(stmt.posn.start, "An integer is required indexing an array!");
 			return null;
 		}
 	}
@@ -278,7 +278,7 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 	public TypeDenoter visitCallStmt(CallStmt stmt, Object arg) {
 		if (stmt.methodRef.declaration instanceof MethodDecl) {
 			if (((MethodDecl) stmt.methodRef.declaration).parameterDeclList.size() != stmt.argList.size()) {
-				throwError(stmt.posn.start, typeError, "Method call does not have correct size of arguments!");
+				throwError(stmt.posn.start, "Method call does not have correct size of arguments!");
 				return null;
 			}
 			int i = 0;
@@ -291,49 +291,49 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 						catchClassReference(stmt.argList.get(i));
 						if (!(((ClassType) parameterTypeDenoter).className.spelling.equals(((ClassType) expressionTypeDenoter).
 								className.spelling))) {
-							throwError(stmt.posn.start, typeError, "Mismatch of types in passing parameter!");
+							throwError(stmt.posn.start, "Mismatch of types in passing parameter!");
 						}
 					} else {
-						throwError(stmt.posn.start, typeError, "Mismatch of types in passing parameter - both " +
+						throwError(stmt.posn.start, "Mismatch of types in passing parameter - both " +
 								"sides must be of Class type!");
 					}
 				} else if (parameterTypeDenoter instanceof ArrayType) {
 					if (!(expressionTypeDenoter instanceof ArrayType)) {
-						throwError(stmt.posn.start, typeError, "Mismatch of types in passing parameter!");
+						throwError(stmt.posn.start, "Mismatch of types in passing parameter!");
 					} else {
 						if (((ArrayType) parameterTypeDenoter).eltType.typeKind.equals(TypeKind.INT)) {
 							if (!(((ArrayType) expressionTypeDenoter).eltType.typeKind.equals(TypeKind.INT))) {
-								throwError(stmt.posn.start, typeError, "Mismatch of element types for array types on both " +
+								throwError(stmt.posn.start, "Mismatch of element types for array types on both " +
 										"sides of the statement!");
 							}
 						} else if (((ArrayType) parameterTypeDenoter).eltType instanceof ClassType) {
 							if (((ArrayType) expressionTypeDenoter).eltType instanceof ClassType) {
 								if (!((ClassType) ((ArrayType) parameterTypeDenoter).eltType).className.spelling.equals(((ClassType)
 										((ArrayType) expressionTypeDenoter).eltType).className.spelling)) {
-									throwError(stmt.posn.start, typeError, "Mismatch of element types in passing parameter!");
+									throwError(stmt.posn.start, "Mismatch of element types in passing parameter!");
 								}
 							} else {
-								throwError(stmt.posn.start, typeError, "Mismatch of types!");
+								throwError(stmt.posn.start, "Mismatch of types!");
 							}
 						} else {
-							throwError(stmt.posn.start, typeError, "Parameter with invalid type passed in!");
+							throwError(stmt.posn.start, "Parameter with invalid type passed in!");
 						}
 					}
 				} else if (parameterTypeDenoter instanceof BaseType) {
 					if (parameterTypeDenoter.typeKind.equals(TypeKind.INT) || parameterTypeDenoter.typeKind.equals(
 							TypeKind.BOOLEAN)) {
 						if (parameterTypeDenoter.typeKind != expressionTypeDenoter.typeKind) {
-							throwError(stmt.posn.start, typeError, "Mismatch of types!");
+							throwError(stmt.posn.start, "Mismatch of types!");
 						}
 					} else {
-						throwError(stmt.posn.start, typeError, "Parameter with invalid type passed in!");
+						throwError(stmt.posn.start, "Parameter with invalid type passed in!");
 					}
 				}
 				i++;
 			}
 			return null;
 		} else {
-			throwError(stmt.posn.start, typeError, "Fields cannot be called as methods!");
+			throwError(stmt.posn.start, "Fields cannot be called as methods!");
 			return null;
 		}
 	}
@@ -345,13 +345,13 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 			if (stmt.returnExpr == null) {
 				return new BaseType(TypeKind.NULL, null);
 			} else {
-				throwError(stmt.posn.start, typeError, "Methods of return type VOID must not return anything " +
+				throwError(stmt.posn.start, "Methods of return type VOID must not return anything " +
 						"even NULL!");
 				return methodDecl.type;
 			}
 		}
 		if (stmt.returnExpr == null) {
-			throwError(stmt.posn.start, typeError, "Methods that have non-void return types must return something!");
+			throwError(stmt.posn.start, "Methods that have non-void return types must return something!");
 			return methodDecl.type;
 		}
 		TypeDenoter returnStmt = stmt.returnExpr.visit(this, ((MethodDecl)arg).type);
@@ -361,13 +361,13 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 				if (((ClassType) methodDecl.type).className.spelling.equals(((ClassType)returnStmt).className.spelling)) {
 					return returnStmt;
 				} else {
-					throwError(stmt.posn.start, typeError, "Return statement does not match the return type!");
+					throwError(stmt.posn.start, "Return statement does not match the return type!");
 					return methodDecl.type;
 				}
 			} else if (methodDecl.type instanceof ArrayType) {
 				if (((ArrayType) methodDecl.type).eltType.typeKind.equals(TypeKind.INT)) {
 					if (!(((ArrayType) returnStmt).eltType.typeKind.equals(TypeKind.INT))) {
-						throwError(stmt.posn.start, typeError, "Return statement does not match the return type!");
+						throwError(stmt.posn.start, "Return statement does not match the return type!");
 						return methodDecl.type;
 					} else {
 						return returnStmt;
@@ -376,24 +376,24 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 					if (((ArrayType) returnStmt).eltType instanceof ClassType) {
 						if (!((ClassType) ((ArrayType) methodDecl.type).eltType).className.spelling.equals(((ClassType)
 								((ArrayType) returnStmt).eltType).className.spelling)) {
-							throwError(stmt.posn.start, typeError, "Return statement does not match the return type!");
+							throwError(stmt.posn.start, "Return statement does not match the return type!");
 							return methodDecl.type;
 						} else {
 							return returnStmt;
 						}
 					} else {
-						throwError(stmt.posn.start, typeError, "Return statement does not match the return type!");
+						throwError(stmt.posn.start, "Return statement does not match the return type!");
 						return methodDecl.type;
 					}
 				} else {
-					throwError(stmt.posn.start, typeError, "Return statement does not match the return type!");
+					throwError(stmt.posn.start, "Return statement does not match the return type!");
 					return methodDecl.type;
 				}
 			} else {
 				return methodDecl.type;
 			}
 		} else {
-			throwError(stmt.posn.start, typeError, "Return statement does not match the return type!");
+			throwError(stmt.posn.start, "Return statement does not match the return type!");
 			return methodDecl.type;
 		}
 	}
@@ -406,7 +406,7 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 			stmt.elseStmt.visit(this, arg);
 		}
 		if (!condition.typeKind.equals(TypeKind.BOOLEAN)) {
-			throwError(stmt.posn.start, typeError, "Condition in if statement should be of type boolean!");
+			throwError(stmt.posn.start, "Condition in if statement should be of type boolean!");
 		}
 		return null;
 	}
@@ -416,7 +416,7 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 		TypeDenoter condition = stmt.cond.visit(this, new BaseType(TypeKind.BOOLEAN, null));
 		stmt.body.visit(this, arg);
 		if (!condition.typeKind.equals(TypeKind.BOOLEAN)) {
-			throwError(stmt.posn.start, typeError, "Condition in while statement should be of type boolean!");
+			throwError(stmt.posn.start, "Condition in while statement should be of type boolean!");
 		}
 		return null;
 	}
@@ -429,7 +429,7 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 			if (expressionTypeDenoter.typeKind.equals(TypeKind.BOOLEAN)) {
 				return new BaseType(TypeKind.BOOLEAN, null);
 			} else {
-				throwError(expr.posn.start, typeError, "Unary expression using ! operator must be used with " +
+				throwError(expr.posn.start, "Unary expression using ! operator must be used with " +
 						"boolean expression!");
 				return new BaseType(TypeKind.BOOLEAN, null);
 			}
@@ -437,7 +437,7 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 			if (expressionTypeDenoter.typeKind.equals(TypeKind.INT)) {
 				return new BaseType(TypeKind.INT, null);
 			} else {
-				throwError(expr.posn.start, typeError, "Unary expression using - operator must be used with " +
+				throwError(expr.posn.start, "Unary expression using - operator must be used with " +
 						"integer expression!");
 				return new BaseType(TypeKind.INT, null);
 			}
@@ -458,7 +458,7 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 				return new BaseType(TypeKind.INT, null);
 			} else {
 				String operatorSpelling = expr.operator.spelling;
-				throwError(expr.posn.start, typeError, operatorSpelling + " requires two expressions to evaluate" +
+				throwError(expr.posn.start, operatorSpelling + " requires two expressions to evaluate" +
 						" to INT!");
 				return new BaseType(TypeKind.INT, null);
 			}
@@ -468,7 +468,7 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 				return new BaseType(TypeKind.BOOLEAN, null);
 			} else {
 				String operatorSpelling = expr.operator.spelling;
-				throwError(expr.posn.start, typeError, operatorSpelling + " requires two expressions to evaluate" +
+				throwError(expr.posn.start, operatorSpelling + " requires two expressions to evaluate" +
 						" to BOOLEAN!");
 				return new BaseType(TypeKind.BOOLEAN, null);
 			}
@@ -479,7 +479,7 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 				return new BaseType(TypeKind.BOOLEAN, null);
 			} else {
 				String operatorSpelling = expr.operator.spelling;
-				throwError(expr.posn.start, typeError, operatorSpelling + " requires two expressions to evaluate" +
+				throwError(expr.posn.start, operatorSpelling + " requires two expressions to evaluate" +
 						" to INT!");
 				return new BaseType(TypeKind.BOOLEAN, null);
 			}
@@ -494,7 +494,7 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 					equals(TypeKind.CLASS))) {
 				if (!(((ClassType)expressionLeftTypeDenoter).className.spelling.equals(((ClassType)expressionRightTypeDenoter).
 						className.spelling))) {
-					throwError(expr.posn.start, typeError, "Cannot compare two classes which are not of the same type!");
+					throwError(expr.posn.start, "Cannot compare two classes which are not of the same type!");
 				}
 				return new BaseType(TypeKind.BOOLEAN, null);
 			} else if ((expressionLeftTypeDenoter.typeKind.equals(TypeKind.ARRAY) && expressionRightTypeDenoter.typeKind.
@@ -504,16 +504,16 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 					if (((ArrayType)expressionLeftTypeDenoter).eltType.typeKind.equals(TypeKind.CLASS)) {
 						if (!(((ClassType)((ArrayType)expressionLeftTypeDenoter).eltType).className.spelling.equals(((ClassType)
 								((ArrayType)expressionRightTypeDenoter).eltType).className.spelling))) {
-							throwError(expr.posn.start, typeError, "Mismatch of types in comparison!");
+							throwError(expr.posn.start, "Mismatch of types in comparison!");
 						}
 					} else {
 						if (!(((ArrayType)expressionLeftTypeDenoter).eltType.typeKind.equals(((ArrayType)
 								expressionRightTypeDenoter).eltType.typeKind))) {
-							throwError(expr.posn.start, typeError, "Mismatch of types in comparison!");
+							throwError(expr.posn.start, "Mismatch of types in comparison!");
 						}
 					}
 				} else {
-					throwError(expr.posn.start, typeError, "Mismatch of types in comparison!");
+					throwError(expr.posn.start, "Mismatch of types in comparison!");
 				}
 				return new BaseType(TypeKind.BOOLEAN, null);
 			} else {
@@ -527,13 +527,13 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 					return new BaseType(TypeKind.BOOLEAN, null);
 				} else {
 					String operatorSpelling = expr.operator.spelling;
-					throwError(expr.posn.start, typeError, operatorSpelling + " requires two expressions of the " +
+					throwError(expr.posn.start, operatorSpelling + " requires two expressions of the " +
 							"same type to evaluate!");
 					return new BaseType(TypeKind.BOOLEAN, null);
 				}
 			}
 		} else {
-			throwError(expr.posn.start, typeError, "Provide a valid operator!");
+			throwError(expr.posn.start, "Provide a valid operator!");
 			return ((TypeDenoter)arg);
 		}
 	}
@@ -551,11 +551,11 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 			if (ref instanceof ArrayType) {
 				return ((ArrayType) ref).eltType;
 			} else {
-				throwError(expr.posn.start, typeError, "Cannot index a non-array!");
+				throwError(expr.posn.start, "Cannot index a non-array!");
 				return ((TypeDenoter) arg);
 			}
 		} else {
-			throwError(expr.posn.start, typeError, "Need to index with an integer value!");
+			throwError(expr.posn.start, "Need to index with an integer value!");
 			return ((TypeDenoter)arg);
 		}
 	}
@@ -564,7 +564,7 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 	public TypeDenoter visitCallExpr(CallExpr expr, Object arg) {
 		if (expr.functionRef.declaration instanceof MethodDecl) {
 			if (((MethodDecl) expr.functionRef.declaration).parameterDeclList.size() != expr.argList.size()) {
-				throwError(expr.posn.start, typeError, "Method call does not have correct size of arguments!");
+				throwError(expr.posn.start, "Method call does not have correct size of arguments!");
 				return ((TypeDenoter)arg);
 			}
 			int i = 0;
@@ -576,49 +576,49 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 					if (expressionTypeDenoter instanceof ClassType) {
 						if (!(((ClassType) parameterTypeDenoter).className.spelling.equals(((ClassType) expressionTypeDenoter).
 								className.spelling))) {
-							throwError(expr.posn.start, typeError, "Mismatch of types in passing parameter!");
+							throwError(expr.posn.start, "Mismatch of types in passing parameter!");
 						}
 					} else {
-						throwError(expr.posn.start, typeError, "Mismatch of types in passing parameter - both " +
+						throwError(expr.posn.start, "Mismatch of types in passing parameter - both " +
 								"sides must be of Class type!");
 					}
 				} else if (parameterTypeDenoter instanceof ArrayType) {
 					if (!(expressionTypeDenoter instanceof ArrayType)) {
-						throwError(expr.posn.start, typeError, "Mismatch of types in passing parameter!");
+						throwError(expr.posn.start, "Mismatch of types in passing parameter!");
 					} else {
 						if (((ArrayType) parameterTypeDenoter).eltType.typeKind.equals(TypeKind.INT)) {
 							if (!(((ArrayType) expressionTypeDenoter).eltType.typeKind.equals(TypeKind.INT))) {
-								throwError(expr.posn.start, typeError, "Mismatch of element types for array types on both " +
+								throwError(expr.posn.start, "Mismatch of element types for array types on both " +
 										"sides of the statement!");
 							}
 						} else if (((ArrayType) parameterTypeDenoter).eltType instanceof ClassType) {
 							if (((ArrayType) expressionTypeDenoter).eltType instanceof ClassType) {
 								if (!((ClassType) ((ArrayType) parameterTypeDenoter).eltType).className.spelling.equals(((ClassType)
 										((ArrayType) expressionTypeDenoter).eltType).className.spelling)) {
-									throwError(expr.posn.start, typeError, "Mismatch of element types in passing parameter!");
+									throwError(expr.posn.start, "Mismatch of element types in passing parameter!");
 								}
 							} else {
-								throwError(expr.posn.start, typeError, "Mismatch of types!");
+								throwError(expr.posn.start, "Mismatch of types!");
 							}
 						} else {
-							throwError(expr.posn.start, typeError, "Parameter with invalid type passed in!");
+							throwError(expr.posn.start, "Parameter with invalid type passed in!");
 						}
 					}
 				} else if (parameterTypeDenoter instanceof BaseType) {
 					if (parameterTypeDenoter.typeKind.equals(TypeKind.INT) || parameterTypeDenoter.typeKind.equals(
 							TypeKind.BOOLEAN)) {
 						if (parameterTypeDenoter.typeKind != expressionTypeDenoter.typeKind) {
-							throwError(expr.posn.start, typeError, "Mismatch of types!");
+							throwError(expr.posn.start, "Mismatch of types!");
 						}
 					} else {
-						throwError(expr.posn.start, typeError, "Parameter with invalid type passed in!");
+						throwError(expr.posn.start, "Parameter with invalid type passed in!");
 					}
 				}
 				i++;
 			}
 			return expr.functionRef.declaration.type;
 		} else {
-			throwError(expr.posn.start, typeError, "Fields cannot be called as methods!");
+			throwError(expr.posn.start, "Fields cannot be called as methods!");
 			return expr.functionRef.declaration.type;
 		}
 	}
@@ -631,7 +631,7 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 	@Override
 	public TypeDenoter visitNewObjectExpr(NewObjectExpr expr, Object arg) {
 		if (expr.classtype.className.spelling.equals("String")) {
-			throwError(expr.posn.start, typeError, "Cannot declare new String objects!");
+			throwError(expr.posn.start, "Cannot declare new String objects!");
 		}
 		return expr.classtype.visit(this, null);
 	}
@@ -641,7 +641,7 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 		TypeDenoter sizeExpr = expr.sizeExpr.visit(this, arg);
 		TypeDenoter elementType = expr.eltType.visit(this, null);
 		if (!sizeExpr.typeKind.equals(TypeKind.INT)) {
-			throwError(expr.posn.start, typeError, "Index of new array expression needs to be an integer!");
+			throwError(expr.posn.start, "Index of new array expression needs to be an integer!");
 		}
 		return new ArrayType(elementType, null);
 	}
@@ -660,7 +660,17 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 
 	@Override
 	public TypeDenoter visitQRef(QualRef ref, Object arg) {
-		return ref.declaration.type.visit(this, null);
+		if (ref.declaration == null) {
+			if (ref.ref.declaration.type.typeKind.equals(TypeKind.ARRAY) && ref.id.spelling.equals("length")) {
+				return new BaseType(TypeKind.INT, null);
+			} else {
+				throwError(ref.posn.start, "Declaration should only be null when retrieving length of " +
+						"array!");
+				return new BaseType(TypeKind.INT, null);
+			}
+		} else {
+			return ref.declaration.type.visit(this, null);
+		}
 	}
 
 	@Override
@@ -688,8 +698,8 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 		return new BaseType(TypeKind.NULL, null);
 	}
 
-	private void throwError(int lineNumber, String errorKind, String message) {
-		System.out.println("*** line " + lineNumber + ": " + errorKind + " - " + message);
+	private void throwError(int lineNumber, String message) {
+		System.out.println("*** line " + lineNumber + ": " + "Type Error" + " - " + message);
 		throwError = true;
 	}
 
@@ -697,7 +707,7 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 		if (expression instanceof RefExpr) {
 			if (((RefExpr) expression).ref instanceof IdRef) {
 				if (((RefExpr) expression).ref.declaration instanceof ClassDecl) {
-					throwError(expression.posn.start, typeError, "Cannot reference a Class on its own!");
+					throwError(expression.posn.start, "Cannot reference a Class on its own!");
 				}
 			}
 		}

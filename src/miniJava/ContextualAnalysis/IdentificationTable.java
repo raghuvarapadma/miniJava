@@ -25,27 +25,37 @@ public class IdentificationTable {
 	}
 
 	public void enter (String string, Declaration declaration){
-		HashMap<String, Declaration> levelFourHashMap = this.stack.pop();
-		if (level == 4) {
-			HashMap<String, Declaration> levelThreeHashMap = this.stack.pop();
-			if (levelFourHashMap.containsKey(string) || levelThreeHashMap.containsKey(string)) {
-				System.out.println("*** line " + declaration.posn.start + ": Identification Error - Each scope level can " +
-						"only have at most one declaration for an identifier!");
-				throw new ContextualAnalysisException();
-			} else {
-				this.stack.push(levelThreeHashMap);
-				levelFourHashMap.put(string, declaration);
-				this.stack.push(levelFourHashMap);
+		HashMap<String, Declaration> currentLevelHashMap = this.stack.pop();
+		if (level >= 4) {
+			ArrayList<HashMap<String, Declaration>> hashMapArrayList = new ArrayList<>();
+			int copyLevel = this.level;
+			hashMapArrayList.add(currentLevelHashMap);
+			copyLevel--;
+			while (copyLevel >= 3) {
+				hashMapArrayList.add(this.stack.pop());
+				copyLevel--;
+			}
+			for (HashMap<String, Declaration> hashMap: hashMapArrayList) {
+				if (hashMap.containsKey(string)) {
+					System.out.println("*** line " + declaration.posn.start + ": Identification Error - Each scope level can " +
+							"only have at most one declaration for an identifier!");
+					throw new ContextualAnalysisException();
+				}
+			}
+			currentLevelHashMap.put(string, declaration);
+			Collections.reverse(hashMapArrayList);
+			for (HashMap<String, Declaration> hashMap: hashMapArrayList) {
+				this.stack.push(hashMap);
 			}
 		}
 		else {
-			if (levelFourHashMap.containsKey(string)) {
+			if (currentLevelHashMap.containsKey(string)) {
 				System.out.println("*** line " + declaration.posn.start + ": Identification Error - Declarations at level" +
 						" 4 or higher may not hide declarations at levels 3 or higher!");
 				throw new ContextualAnalysisException();
 			} else {
-				levelFourHashMap.put(string, declaration);
-				this.stack.push(levelFourHashMap);
+				currentLevelHashMap.put(string, declaration);
+				this.stack.push(currentLevelHashMap);
 			}
 		}
 	}

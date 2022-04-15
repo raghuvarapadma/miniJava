@@ -26,6 +26,7 @@ public class Compiler {
 		Parser parser = new Parser(scanner);
 		try {
 			Package ast = parser.parse();
+			new ASTDisplay().showTree(ast);
 			try {
 				Identification identification = new Identification(ast);
 				TypeChecking typechecking = new TypeChecking(ast);

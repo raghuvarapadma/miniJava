@@ -19,6 +19,21 @@ public class Parser {
 		previousTokenPosition.start = 0;
 		previousTokenPosition.finish = 0;
 		ClassDeclList classDeclList = new ClassDeclList();
+		FieldDeclList fieldDeclListSystem = new FieldDeclList();
+		fieldDeclListSystem.add(new FieldDecl(false, true, new ClassType(new Identifier(new Token
+				(TokenKind.IDENTIFIER, "_PrintStream", null)), null), "out", null));
+		ClassDecl system = new ClassDecl("System", fieldDeclListSystem, new MethodDeclList(), null);
+		MethodDeclList methodDeclListPrintSystem = new MethodDeclList();
+		ParameterDeclList parameterDeclList = new ParameterDeclList();
+		parameterDeclList.add(new ParameterDecl(new BaseType(TypeKind.INT, null), "n", null));
+		methodDeclListPrintSystem.add(new MethodDecl(new FieldDecl(false, false, new BaseType
+				(TypeKind.VOID, null), "println", null), parameterDeclList, new StatementList(), null));
+		ClassDecl printStream = new ClassDecl("_PrintStream", new FieldDeclList(), methodDeclListPrintSystem,
+				null);
+		ClassDecl string = new ClassDecl("String", new FieldDeclList(), new MethodDeclList(), null);
+		classDeclList.add(system);
+		classDeclList.add(printStream);
+		classDeclList.add(string);
 		while (currentToken.getTokenKind() != TokenKind.EOT) {
 			classDeclList.add(parseClassDeclaration());
 		}
@@ -57,8 +72,11 @@ public class Parser {
 				start(voidSourcePosition);
 				accept(TokenKind.VOID);
 				finish(voidSourcePosition);
-				methodDeclList.add(parseMethodDeclaration(TokenKind.VOID, isPrivate, isStatic, new BaseType(TypeKind.VOID,
-						voidSourcePosition), null, methodFieldModifiers));
+				MethodDecl methodDecl = parseMethodDeclaration(TokenKind.VOID, isPrivate, isStatic, new BaseType(TypeKind.VOID,
+						voidSourcePosition), null, methodFieldModifiers);
+				finish(fieldOrMethodSourcePosition);
+				methodDecl.posn = fieldOrMethodSourcePosition;
+				methodDeclList.add(methodDecl);
 			} else {
 				TypeDenoter typeDenoter = parseType();
 				String name = currentToken.getSpelling();

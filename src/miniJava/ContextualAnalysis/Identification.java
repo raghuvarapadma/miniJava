@@ -2,8 +2,6 @@ package miniJava.ContextualAnalysis;
 
 import miniJava.AbstractSyntaxTrees.*;
 import miniJava.AbstractSyntaxTrees.Package;
-import miniJava.SyntacticAnalyzer.Token;
-import miniJava.SyntacticAnalyzer.TokenKind;
 
 import java.util.HashMap;
 
@@ -28,21 +26,6 @@ public class Identification implements Visitor<Object, Object> {
 	@Override
 	public Object visitPackage(Package prog, Object arg)  {
 		table.openScope();
-		FieldDeclList fieldDeclListSystem = new FieldDeclList();
-		fieldDeclListSystem.add(new FieldDecl(false, true, new ClassType(new Identifier(new Token
-				(TokenKind.IDENTIFIER, "_PrintStream", null)), null), "out", null));
-		ClassDecl system = new ClassDecl("System", fieldDeclListSystem, new MethodDeclList(), null);
-		MethodDeclList methodDeclListPrintSystem = new MethodDeclList();
-		ParameterDeclList parameterDeclList = new ParameterDeclList();
-		parameterDeclList.add(new ParameterDecl(new BaseType(TypeKind.INT, null), "n", null));
-		methodDeclListPrintSystem.add(new MethodDecl(new FieldDecl(false, false, new BaseType
-				(TypeKind.VOID, null), "println", null), parameterDeclList, new StatementList(), null));
-		ClassDecl printStream = new ClassDecl("_PrintStream", new FieldDeclList(), methodDeclListPrintSystem,
-				null);
-		ClassDecl string = new ClassDecl("String", new FieldDeclList(), new MethodDeclList(), null);
-		prog.classDeclList.add(system);
-		prog.classDeclList.add(printStream);
-		prog.classDeclList.add(string);
 		for (ClassDecl cd: prog.classDeclList) {
 			table.enter(cd.name, cd);
 			classesDecl.put(cd.name, cd);
@@ -155,6 +138,10 @@ public class Identification implements Visitor<Object, Object> {
 	@Override
 	public Object visitAssignStmt(AssignStmt stmt, Object arg) {
 		stmt.ref.visit(this, null);
+		if (stmt.ref.declaration instanceof MethodDecl) {
+			throwError(stmt.posn.start, "Field is being read as method!");
+			throw new ContextualAnalysisException();
+		}
 		stmt.val.visit(this, null);
 		return null;
 	}
@@ -162,6 +149,10 @@ public class Identification implements Visitor<Object, Object> {
 	@Override
 	public Object visitIxAssignStmt(IxAssignStmt stmt, Object arg) {
 		stmt.ref.visit(this, null);
+		if (stmt.ref.declaration instanceof MethodDecl) {
+			throwError(stmt.posn.start, "Field is being read as method!");
+			throw new ContextualAnalysisException();
+		}
 		stmt.ix.visit(this, null);
 		stmt.exp.visit(this, null);
 		return null;
@@ -246,12 +237,20 @@ public class Identification implements Visitor<Object, Object> {
 	@Override
 	public Object visitRefExpr(RefExpr expr, Object arg) {
 		expr.ref.visit(this, arg);
+		if (expr.ref.declaration instanceof MethodDecl) {
+			throwError(expr.posn.start, "Field is being read as method!");
+			throw new ContextualAnalysisException();
+		}
 		return null;
 	}
 
 	@Override
 	public Object visitIxExpr(IxExpr expr, Object arg) {
 		expr.ref.visit(this, arg);
+		if (expr.ref.declaration instanceof MethodDecl) {
+			throwError(expr.posn.start, "Field is being read as method!");
+			throw new ContextualAnalysisException();
+		}
 		expr.ixExpr.visit(this, arg);
 		return null;
 	}
@@ -292,7 +291,7 @@ public class Identification implements Visitor<Object, Object> {
 	public Object visitThisRef(ThisRef ref, Object arg) {
 		ref.declaration = currentClassDecl;
 		if (inStaticMethod) {
-			throwError(((QualRef)arg).posn.start, "Cannot use THIS keyword inside of static method!");
+			throwError(ref.posn.start, "Cannot use THIS keyword inside of static method!");
 			throw new ContextualAnalysisException();
 		}
 		return null;
@@ -391,10 +390,18 @@ public class Identification implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitQRef(QualRef ref, Object arg) {
-		if (!(arg instanceof Boolean)) {
+		if (!(arg instanceof Reference)) {
 			arg = null;
 		}
 		ref.ref.visit(this, ref);
+		if (ref.ref.declaration.type.typeKind.equals(TypeKind.ARRAY)) {
+			if (ref.id.spelling.equals("length") && arg == null) {
+				return null;
+			} else {
+				throwError(ref.posn.start, "The only field available to arrays is length!");
+				throw new ContextualAnalysisException();
+			}
+		}
 		FieldDeclList fieldDeclList;
 		if (ref.ref instanceof ThisRef || ref.ref instanceof IdRef) {
 			if (ref.ref.declaration instanceof ClassDecl) {
@@ -465,6 +472,9 @@ public class Identification implements Visitor<Object, Object> {
 		} else {
 			classDecl = ((ClassDecl)classesDecl.get(((ClassType)(((QualRef)arg).ref.declaration).type).className.spelling));
 		}
+		if (classDecl.name.equals(currentClass)) {
+			isThis = true;
+		}
 		FieldDeclList fieldDeclList = classDecl.fieldDeclList;
 		boolean found = false;
 
@@ -484,6 +494,27 @@ public class Identification implements Visitor<Object, Object> {
 						if (id.spelling.equals(methodDecl.name)) {
 							found = true;
 							break;
+						}
+					}
+				}
+			}
+			if (isThis) {
+				for (FieldDecl fieldDecl: fieldDeclList) {
+					if (fieldDecl.isStatic) {
+						if (id.spelling.equals(fieldDecl.name)) {
+							found = true;
+							break;
+						}
+					}
+				}
+				if (baseLevel && !found) {
+					MethodDeclList methodDeclList = classDecl.methodDeclList;
+					for (MethodDecl methodDecl : methodDeclList) {
+						if (methodDecl.isStatic) {
+							if (id.spelling.equals(methodDecl.name)) {
+								found = true;
+								break;
+							}
 						}
 					}
 				}
