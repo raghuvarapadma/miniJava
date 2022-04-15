@@ -25,6 +25,23 @@ public class Identification implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitPackage(Package prog, Object arg)  {
+		int countMainMethods = 0;
+		for (ClassDecl classDecl: prog.classDeclList) {
+			for (MethodDecl methodDecl: classDecl.methodDeclList) {
+				if (!methodDecl.isPrivate && methodDecl.isStatic && methodDecl.name.equals("main") &&
+						methodDecl.type.typeKind.equals(TypeKind.VOID) && (methodDecl.parameterDeclList.size() == 1 &&
+						methodDecl.parameterDeclList.get(0).name.equals("args") &&
+						methodDecl.parameterDeclList.get(0).type.typeKind.equals(TypeKind.ARRAY) &&
+						((ArrayType)methodDecl.parameterDeclList.get(0).type).eltType.typeKind.equals(TypeKind.CLASS) &&
+						((ClassType)((ArrayType)methodDecl.parameterDeclList.get(0).type).eltType).className.spelling.
+								equals("String"))) {
+					countMainMethods++;
+				}
+			}
+		}
+		if (countMainMethods != 1) {
+			throwError(prog.posn.start, "miniJava program should only contain unique main method!");
+		}
 		table.openScope();
 		for (ClassDecl cd: prog.classDeclList) {
 			table.enter(cd.name, cd);

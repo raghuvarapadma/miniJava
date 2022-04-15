@@ -5,7 +5,6 @@ import miniJava.AbstractSyntaxTrees.Package;
 
 public class TypeChecking implements Visitor<Object, TypeDenoter> {
 
-	private final String typeError = "Type Error";
 	public static boolean throwError = false;
 
 	public TypeChecking(Package ast) {
