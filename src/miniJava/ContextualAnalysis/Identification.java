@@ -30,11 +30,11 @@ public class Identification implements Visitor<Object, Object> {
 			for (MethodDecl methodDecl: classDecl.methodDeclList) {
 				if (!methodDecl.isPrivate && methodDecl.isStatic && methodDecl.name.equals("main") &&
 						methodDecl.type.typeKind.equals(TypeKind.VOID) && (methodDecl.parameterDeclList.size() == 1 &&
-						methodDecl.parameterDeclList.get(0).name.equals("args") &&
 						methodDecl.parameterDeclList.get(0).type.typeKind.equals(TypeKind.ARRAY) &&
 						((ArrayType)methodDecl.parameterDeclList.get(0).type).eltType.typeKind.equals(TypeKind.CLASS) &&
 						((ClassType)((ArrayType)methodDecl.parameterDeclList.get(0).type).eltType).className.spelling.
 								equals("String"))) {
+					methodDecl.isMain = true;
 					countMainMethods++;
 				}
 			}
@@ -411,7 +411,7 @@ public class Identification implements Visitor<Object, Object> {
 			arg = null;
 		}
 		ref.ref.visit(this, ref);
-		if (ref.ref.declaration.type.typeKind.equals(TypeKind.ARRAY)) {
+		if (ref.ref.declaration.type != null && ref.ref.declaration.type.typeKind.equals(TypeKind.ARRAY)) {
 			if (ref.id.spelling.equals("length") && arg == null) {
 				return null;
 			} else {
@@ -440,6 +440,7 @@ public class Identification implements Visitor<Object, Object> {
 		for (FieldDecl fieldDecl: fieldDeclList) {
 			if (fieldDecl.name.equals(ref.id.spelling)) {
 				ref.declaration = fieldDecl;
+				ref.id.declaration = fieldDecl;
 				found = true;
 			}
 		}
@@ -454,6 +455,7 @@ public class Identification implements Visitor<Object, Object> {
 			for (MethodDecl methodDecl: methodDeclList) {
 				if (methodDecl.name.equals(ref.id.spelling)) {
 					ref.declaration = methodDecl;
+					ref.id.declaration = methodDecl;
 				}
 			}
 		}

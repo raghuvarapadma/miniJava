@@ -1,7 +1,11 @@
 package miniJava;
 
+import mJAM.Disassembler;
+import mJAM.Interpreter;
+import mJAM.ObjectFile;
 import miniJava.AbstractSyntaxTrees.ASTDisplay;
 import miniJava.AbstractSyntaxTrees.Package;
+import miniJava.CodeGenerator.CodeGenerator;
 import miniJava.ContextualAnalysis.ContextualAnalysisException;
 import miniJava.ContextualAnalysis.Identification;
 import miniJava.ContextualAnalysis.TypeChecking;
@@ -32,9 +36,33 @@ public class Compiler {
 				TypeChecking typechecking = new TypeChecking(ast);
 				if (TypeChecking.throwError) {
 					System.exit(4);
-				} else {
-					System.exit(0);
 				}
+				CodeGenerator codeGenerator = new CodeGenerator(ast);
+				String objectCodeFileName = filename.replace(".java", ".mJam");
+				ObjectFile objF = new ObjectFile(objectCodeFileName);
+				System.out.print("Writing object code file " + objectCodeFileName + " ... ");
+				if (objF.write()) {
+					System.out.println("FAILED!");
+					System.exit(4);;
+				}
+				else {
+					System.out.println("SUCCEEDED");
+				}
+				Interpreter.interpret(objectCodeFileName);
+//				String asmCodeFileName = objectCodeFileName.replace(".mJAM",".asm");
+//				System.out.print("Writing assembly file " + asmCodeFileName + " ... ");
+//				Disassembler d = new Disassembler(objectCodeFileName);
+//				if (d.disassemble()) {
+//					System.out.println("FAILED!");
+//					System.exit(4);;
+//				}
+//				else {
+//					System.out.println("SUCCEEDED");
+//				}
+//				System.out.println("Running code in debugger ... ");
+//				Interpreter.debug(objectCodeFileName, asmCodeFileName);
+//
+//				System.out.println("*** mJAM execution completed");
 			} catch (ContextualAnalysisException e) {
 				System.exit(4);;
 			}
