@@ -41,6 +41,7 @@ public class Identification implements Visitor<Object, Object> {
 		}
 		if (countMainMethods != 1) {
 			throwError(prog.posn.start, "miniJava program should only contain unique main method!");
+			throw new ContextualAnalysisException();
 		}
 		table.openScope();
 		for (ClassDecl cd: prog.classDeclList) {
