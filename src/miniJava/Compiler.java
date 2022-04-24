@@ -38,7 +38,7 @@ public class Compiler {
 					System.exit(4);
 				}
 				CodeGenerator codeGenerator = new CodeGenerator(ast);
-				String objectCodeFileName = filename.replace(".java", ".mJam");
+				String objectCodeFileName = filename.replace(".java", ".mJAM");
 				ObjectFile objF = new ObjectFile(objectCodeFileName);
 				System.out.print("Writing object code file " + objectCodeFileName + " ... ");
 				if (objF.write()) {
