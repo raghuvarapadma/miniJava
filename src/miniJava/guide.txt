@@ -1,0 +1,14 @@
+Scope of Project:
+No additional parts have been implemented in PA5.
+
+Summary of Changes to AST Classes:
+AST.java - added public RuntimeEntity field
+ASTDisplay.java - added visitNullLiteral method to add null literals to ASTs
+Identifier.java - added Declaration field
+MethodDecl.java - added isMain field to denote if method is the main method
+Reference.java - added Declaration field
+TypeKind.java - added NULL field to TypeKind enum
+Visitor.java - added visitNullLiteral method to Visitor interface
+
+A Description of Tests:
+No tests were provided because no additional parts have been implemented.

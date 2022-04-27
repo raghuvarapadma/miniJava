@@ -6,8 +6,10 @@ import miniJava.AbstractSyntaxTrees.Package;
 public class TypeChecking implements Visitor<Object, TypeDenoter> {
 
 	public static boolean throwError = false;
+	public boolean assignmentStmt;
 
 	public TypeChecking(Package ast) {
+		assignmentStmt = false;
 		ast.visit(this, null);
 	}
 
@@ -167,7 +169,9 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 
 	@Override
 	public TypeDenoter visitAssignStmt(AssignStmt stmt, Object arg) {
+		assignmentStmt = true;
 		TypeDenoter ref = stmt.ref.visit(this, null);
+		assignmentStmt = false;
 		TypeDenoter val = stmt.val.visit(this, stmt.ref.declaration.type);
 		if ((stmt.ref.declaration instanceof ClassDecl) || (stmt.ref.declaration instanceof MethodDecl)) {
 			throwError(stmt.posn.start, "The reference cannot directly point to a Class or " +
@@ -544,6 +548,7 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 
 	@Override
 	public TypeDenoter visitIxExpr(IxExpr expr, Object arg) {
+
 		TypeDenoter ref = expr.ref.visit(this, null);
 		TypeDenoter ixExpr = expr.ixExpr.visit(this, arg);
 		if (ixExpr.typeKind.equals(TypeKind.INT)) {
@@ -660,11 +665,19 @@ public class TypeChecking implements Visitor<Object, TypeDenoter> {
 	@Override
 	public TypeDenoter visitQRef(QualRef ref, Object arg) {
 		if (ref.declaration == null) {
-			if (ref.ref.declaration.type.typeKind.equals(TypeKind.ARRAY) && ref.id.spelling.equals("length")) {
+			if (ref.ref.declaration.type.typeKind.equals(TypeKind.ARRAY) && ref.id.spelling.equals("length") &&
+					!assignmentStmt) {
+				ref.declaration = new FieldDecl(false, false, new BaseType(TypeKind.INT, ref.posn),
+						"length", ref.posn);
+				ref.id.declaration = new FieldDecl(false, false, new BaseType(TypeKind.INT, ref.posn),
+						"length", ref.posn);
 				return new BaseType(TypeKind.INT, null);
 			} else {
-				throwError(ref.posn.start, "Declaration should only be null when retrieving length of " +
-						"array!");
+				ref.declaration = new FieldDecl(false, false, new BaseType(TypeKind.INT, ref.posn),
+						"length", ref.posn);
+				ref.id.declaration = new FieldDecl(false, false, new BaseType(TypeKind.INT, ref.posn),
+						"length", ref.posn);
+				throwError(ref.posn.start, "Cannot assign array length!");
 				return new BaseType(TypeKind.INT, null);
 			}
 		} else {

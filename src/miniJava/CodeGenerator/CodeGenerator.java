@@ -226,6 +226,9 @@ public class CodeGenerator implements Visitor<Object, Object> {
 		} else {
 			Machine.emit(Machine.Op.CALLI, Machine.Reg.CB, jump);
 		}
+		if (!stmt.methodRef.declaration.type.typeKind.equals(TypeKind.VOID)) {
+			Machine.emit(Machine.Op.POP, 1);
+		}
 		return null;
 	}
 
@@ -281,31 +284,73 @@ public class CodeGenerator implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitBinaryExpr(BinaryExpr expr, Object arg) {
-		expr.left.visit(this, null);
-		expr.right.visit(this, null);
 		if (expr.operator.spelling.equals("+")) {
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Machine.Prim.add);
 		} else if (expr.operator.spelling.equals("-")) {
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Machine.Prim.sub);
 		} else if (expr.operator.spelling.equals("*")) {
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Machine.Prim.mult);
 		} else if (expr.operator.spelling.equals("/")) {
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Machine.Prim.div);
 		} else if (expr.operator.spelling.equals("&&")) {
+			expr.left.visit(this, null);
+			int patchAndAddr = Machine.nextInstrAddr();
+			Machine.emit(Machine.Op.JUMPIF, 0, Machine.Reg.CB, -1);
+			Machine.emit(Machine.Op.LOADL, 1);
+			expr.right.visit(this, null);
 			Machine.emit(Machine.Prim.and);
+			int patchAndAddrComplete = Machine.nextInstrAddr();
+			Machine.emit(Machine.Op.JUMP, Machine.Reg.CB, -1);
+			int patchAndAddrShortCircuit = Machine.nextInstrAddr();
+			Machine.emit(Machine.Op.LOADL, 0);
+			Machine.patch(patchAndAddr, patchAndAddrShortCircuit);
+			int patchAndComplete = Machine.nextInstrAddr();
+			Machine.patch(patchAndAddrComplete, patchAndComplete);
 		} else if (expr.operator.spelling.equals("||")) {
+			expr.left.visit(this, null);
+			int patchOrAddr = Machine.nextInstrAddr();
+			Machine.emit(Machine.Op.JUMPIF, 1, Machine.Reg.CB, -1);
+			Machine.emit(Machine.Op.LOADL, 0);
+			expr.right.visit(this, null);
 			Machine.emit(Machine.Prim.or);
+			int patchOrAddrComplete = Machine.nextInstrAddr();
+			Machine.emit(Machine.Op.JUMP, Machine.Reg.CB, -1);
+			int patchOrAddrShortCircuit = Machine.nextInstrAddr();
+			Machine.emit(Machine.Op.LOADL, 1);
+			Machine.patch(patchOrAddr, patchOrAddrShortCircuit);
+			int patchOrComplete = Machine.nextInstrAddr();
+			Machine.patch(patchOrAddrComplete, patchOrComplete);
 		} else if (expr.operator.spelling.equals(">")) {
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Machine.Prim.gt);
 		} else if (expr.operator.spelling.equals("<")) {
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Machine.Prim.lt);
 		} else if (expr.operator.spelling.equals("==")) {
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Machine.Prim.eq);
 		} else if (expr.operator.spelling.equals("<=")) {
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Machine.Prim.le);
 		} else if (expr.operator.spelling.equals(">=")) {
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Machine.Prim.ge);
 		} else if (expr.operator.spelling.equals("!=")) {
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Machine.Prim.ne);
 		}
 		return null;

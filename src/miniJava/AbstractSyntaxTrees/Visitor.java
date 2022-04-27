@@ -4,9 +4,6 @@
  * @version COMP 520 (v2.2)
  */
 package miniJava.AbstractSyntaxTrees;
-
-import miniJava.ContextualAnalysis.ContextualAnalysisException;
-
 /**
  * An implementation of the Visitor interface provides a method visitX
  * for each non-abstract AST class X.  
