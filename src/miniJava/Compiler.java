@@ -48,21 +48,21 @@ public class Compiler {
 				else {
 					System.out.println("SUCCEEDED");
 				}
-				Interpreter.interpret(objectCodeFileName);
-//				String asmCodeFileName = objectCodeFileName.replace(".mJAM",".asm");
-//				System.out.print("Writing assembly file " + asmCodeFileName + " ... ");
-//				Disassembler d = new Disassembler(objectCodeFileName);
-//				if (d.disassemble()) {
-//					System.out.println("FAILED!");
-//					System.exit(4);;
-//				}
-//				else {
-//					System.out.println("SUCCEEDED");
-//				}
-//				System.out.println("Running code in debugger ... ");
-//				Interpreter.debug(objectCodeFileName, asmCodeFileName);
-//
-//				System.out.println("*** mJAM execution completed");
+//				Interpreter.interpret(objectCodeFileName);
+				String asmCodeFileName = objectCodeFileName.replace(".mJAM",".asm");
+				System.out.print("Writing assembly file " + asmCodeFileName + " ... ");
+				Disassembler d = new Disassembler(objectCodeFileName);
+				if (d.disassemble()) {
+					System.out.println("FAILED!");
+					System.exit(4);;
+				}
+				else {
+					System.out.println("SUCCEEDED");
+				}
+				System.out.println("Running code in debugger ... ");
+				Interpreter.debug(objectCodeFileName, asmCodeFileName);
+
+				System.out.println("*** mJAM execution completed");
 			} catch (ContextualAnalysisException e) {
 				System.exit(4);;
 			}

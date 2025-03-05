@@ -497,7 +497,6 @@ public class Identification implements Visitor<Object, Object> {
 		}
 		FieldDeclList fieldDeclList = classDecl.fieldDeclList;
 		boolean found = false;
-
 		if (isStatic) {
 			for (FieldDecl fieldDecl: fieldDeclList) {
 				if (fieldDecl.isStatic && !fieldDecl.isPrivate) {

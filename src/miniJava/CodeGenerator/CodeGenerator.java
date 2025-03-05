@@ -16,6 +16,7 @@ public class CodeGenerator implements Visitor<Object, Object> {
 	boolean baseLevel;
 	boolean assignStatementFlag;
 	public int instanceFieldCalls;
+	public MethodDecl currentMethodDecl;
 
 	public CodeGenerator(Package ast) {
 		patching = new HashMap<>();
@@ -23,6 +24,7 @@ public class CodeGenerator implements Visitor<Object, Object> {
 		baseLevel = false;
 		assignStatementFlag = false;
 		instanceFieldCalls = 0;
+		currentMethodDecl = null;
 		Machine.initCodeGen();
 		ast.visit(this, null);
 	}
@@ -79,6 +81,7 @@ public class CodeGenerator implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitMethodDecl(MethodDecl md, Object arg) {
+		currentMethodDecl = md;
 		int methodAddress = Machine.nextInstrAddr();
 		md.runtimeEntity = new KnownAddress(0, methodAddress, Machine.Reg.CB);
 		if (md.isMain) {
@@ -96,8 +99,6 @@ public class CodeGenerator implements Visitor<Object, Object> {
 		}
 		if (md.type.typeKind.equals(TypeKind.VOID)) {
 			Machine.emit(Machine.Op.RETURN, 0, 0, md.parameterDeclList.size());
-		} else {
-			Machine.emit(Machine.Op.RETURN, 1, 0, md.parameterDeclList.size());
 		}
 		return null;
 	}
@@ -234,8 +235,14 @@ public class CodeGenerator implements Visitor<Object, Object> {
 
 	@Override
 	public Object visitReturnStmt(ReturnStmt stmt, Object arg) {
+		MethodDecl md = currentMethodDecl;
 		if (stmt.returnExpr != null) {
 			stmt.returnExpr.visit(this, null);
+		}
+		if (md.type.typeKind.equals(TypeKind.VOID)) {
+			Machine.emit(Machine.Op.RETURN, 0, 0, md.parameterDeclList.size());
+		} else {
+			Machine.emit(Machine.Op.RETURN, 1, 0, md.parameterDeclList.size());
 		}
 		return null;
 	}
